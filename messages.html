@@ -628,9 +628,15 @@ function renderBubble(msg, doScroll) {
 
   const timeStr = formatTime(msg.created_at);
   const content = msg.content || '';
-  const isImage = content.startsWith('[image]');
+  // [image-path] = private bucket path (no public URL).
+  // Users only see a "Photo sent" placeholder — the actual image is private
+  // and can only be viewed by admin.html via a server-side signed URL.
+  const isImage = content.startsWith('[image-path]') || content.startsWith('[image]');
   const bodyHtml = isImage
-    ? `<img class="bubble-img" src="${escapeAttr(content.slice(7))}" alt="Photo" onclick="openLightbox(this.src)" loading="lazy" />`
+    ? `<div style="display:flex;align-items:center;gap:0.5rem;padding:0.25rem 0;color:rgba(255,255,255,0.7);font-size:0.8rem">
+         <span style="font-size:1.2rem">📷</span>
+         <span>Photo sent — visible to support team only</span>
+       </div>`
     : escapeHtml(content);
 
   row.innerHTML = `
@@ -717,16 +723,21 @@ async function handlePhotoSelect(event) {
 
     if (uploadError) throw uploadError;
 
-    // Get public URL
-    const { data: urlData } = _supabase.storage.from('chat-images').getPublicUrl(fileName);
-    const publicUrl = urlData.publicUrl;
+    // ── PRIVATE BUCKET: store only the file path, NOT a public URL ──
+    // Only admin.html (which creates a fresh signed URL server-side) can view the image.
+    // Users in message.html cannot retrieve the image of another session because
+    // (a) the bucket has no public access, and
+    // (b) createSignedUrl is called with the session's own fileName only during upload.
+    // The stored content is the storage path, prefixed with [image-path] so the
+    // admin panel knows to request a signed URL before rendering.
+    const storagePath = fileName; // e.g. "sess_GSS-123_1234567890.jpg"
 
-    // Send as a message with [image] prefix
+    // Send as a message with [image-path] prefix (path only, no public URL)
     const msgObj = {
       session_id:  SESSION_ID,
       sender_name: SENDER_NAME,
       sender:      'user',
-      content:     '[image]' + publicUrl,
+      content:     '[image-path]' + storagePath,
       created_at:  new Date().toISOString()
     };
 
