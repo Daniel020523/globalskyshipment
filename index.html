@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Global Sky Shipment — Track Your Package</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #03091f;
+    --surface: #070f2b;
+    --surface2: #0b1638;
+    --surface3: #0f1d45;
+    --border: rgba(96,165,250,0.1);
+    --border2: rgba(96,165,250,0.2);
+    --blue: #2563eb;
+    --blue-bright: #3b82f6;
+    --blue-light: #60a5fa;
+    --blue-dim: rgba(59,130,246,0.12);
+    --blue-glow: rgba(37,99,235,0.25);
+    --white: #ffffff;
+    --text: #e8f0ff;
+    --muted: #6b8ec7;
+    --muted2: #4a6fa5;
+    --success: #22c55e;
+    --success-dim: rgba(34,197,94,0.12);
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --warning-dim: rgba(245,158,11,0.12);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ─── Background ─── */
+  .bg-layer {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background:
+      radial-gradient(ellipse 70% 50% at 50% -10%, rgba(37,99,235,0.18) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 40% at 90% 90%, rgba(59,130,246,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 30% 30% at 5% 80%, rgba(37,99,235,0.06) 0%, transparent 60%);
+  }
+  .grid-layer {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image:
+      linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+  .stars {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background:
+      radial-gradient(1px 1px at 12% 8%,  rgba(255,255,255,0.7) 0%, transparent 100%),
+      radial-gradient(1px 1px at 78% 12%, rgba(255,255,255,0.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 42% 68%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 88% 55%, rgba(255,255,255,0.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 22% 88%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 63% 32%, rgba(255,255,255,0.7) 0%, transparent 100%),
+      radial-gradient(2px 2px at 35% 22%, rgba(96,165,250,0.6) 0%, transparent 100%),
+      radial-gradient(2px 2px at 72% 78%, rgba(96,165,250,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 50% 50%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 18% 45%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 95% 30%, rgba(255,255,255,0.4) 0%, transparent 100%);
+  }
+
+  /* ─── Header ─── */
+  header {
+    position: relative; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(16px);
+    background: rgba(3,9,31,0.75);
+    flex-wrap: wrap; gap: 0.5rem;
+  }
+  .logo { display: flex; align-items: center; gap: 0.85rem; text-decoration: none; }
+  .logo-svg-wrap {
+    width: 46px; height: 46px;
+    background: linear-gradient(135deg, #1d4ed8, #2563eb);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 18px rgba(37,99,235,0.45);
+    border: 1px solid rgba(96,165,250,0.25);
+    flex-shrink: 0;
+  }
+  .logo-text-wrap { display: flex; flex-direction: column; }
+  .logo-name {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.35rem; font-weight: 800; letter-spacing: 1px;
+    background: linear-gradient(90deg, #ffffff 0%, #93c5fd 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    line-height: 1;
+  }
+  .logo-tagline {
+    font-size: 0.58rem; font-weight: 500;
+    color: var(--muted); letter-spacing: 3px;
+    text-transform: uppercase; margin-top: 3px;
+  }
+  .header-badge {
+    font-family: 'Outfit', sans-serif; font-size: 0.7rem; font-weight: 500;
+    color: var(--blue-light);
+    border: 1px solid var(--border2);
+    background: var(--blue-dim);
+    padding: 0.3rem 0.85rem; border-radius: 20px; letter-spacing: 1px;
+  }
+
+  /* ─── Main ─── */
+  .main {
+    position: relative; z-index: 2;
+    max-width: 760px; margin: 0 auto;
+    padding: 3rem 1.25rem 5rem;
+  }
+
+  /* ─── Hero Text ─── */
+  .hero-eyebrow {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    font-family: 'Outfit', sans-serif; font-size: 0.68rem; font-weight: 600;
+    color: var(--blue-light); letter-spacing: 3px; text-transform: uppercase;
+    margin-bottom: 1rem;
+    background: var(--blue-dim); border: 1px solid var(--border2);
+    padding: 0.35rem 0.85rem; border-radius: 20px;
+  }
+  .hero-title {
+    font-family: 'Outfit', sans-serif; font-weight: 900;
+    font-size: clamp(2rem, 8vw, 4rem);
+    letter-spacing: -1px; line-height: 1.05;
+    color: #fff; margin-bottom: 0.5rem;
+  }
+  .hero-title .accent {
+    background: linear-gradient(90deg, #60a5fa, #2563eb);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .hero-sub {
+    color: var(--muted); font-size: 0.95rem; font-weight: 300;
+    margin-bottom: 2.5rem; line-height: 1.6;
+  }
+
+  /* ─── Search Box ─── */
+  .search-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    margin-bottom: 2.5rem;
+    animation: fadeSlide 0.6s cubic-bezier(0.16,1,0.3,1) both;
+  }
+  @keyframes fadeSlide { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+
+  .search-label {
+    font-family: 'Outfit', sans-serif; font-size: 0.68rem; font-weight: 700;
+    letter-spacing: 3px; text-transform: uppercase;
+    color: var(--blue-light); margin-bottom: 1rem;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .search-row {
+    display: flex; gap: 0.75rem;
+  }
+  @media (max-width: 540px) { .search-row { flex-direction: column; } }
+
+  .search-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1.5px solid var(--border2);
+    border-radius: 12px;
+    padding: 0.9rem 1.1rem;
+    color: var(--white);
+    font-family: 'Outfit', sans-serif; font-size: 1rem; font-weight: 600;
+    letter-spacing: 2px; text-transform: uppercase;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  }
+  .search-input::placeholder { color: var(--muted2); opacity: 0.6; font-weight: 400; letter-spacing: 1px; text-transform: none; }
+  .search-input:focus {
+    border-color: var(--blue-bright);
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+    background: var(--surface3);
+  }
+
+  .search-btn {
+    padding: 0.9rem 1.8rem;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    border: none; border-radius: 12px; color: #fff;
+    font-family: 'Outfit', sans-serif; font-size: 0.9rem; font-weight: 700;
+    letter-spacing: 1px; cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 4px 20px rgba(37,99,235,0.4);
+    display: flex; align-items: center; gap: 0.5rem; white-space: nowrap;
+  }
+  .search-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(37,99,235,0.55); }
+  .search-btn:active { transform: translateY(0); }
+  .search-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  .search-hint { font-size: 0.75rem; color: var(--muted2); margin-top: 0.75rem; }
+
+  /* ─── Error ─── */
+  .error-box {
+    display: none;
+    background: rgba(239,68,68,0.08);
+    border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 12px; padding: 1rem 1.1rem;
+    margin-top: 1rem; color: #fca5a5; font-size: 0.85rem; line-height: 1.5;
+  }
+
+  /* ─── Loading ─── */
+  .loading-box {
+    display: none;
+    flex-direction: column; align-items: center; gap: 1rem;
+    padding: 2.5rem 1rem; text-align: center;
+  }
+  .load-ring {
+    width: 56px; height: 56px; border-radius: 50%;
+    border: 2.5px solid rgba(96,165,250,0.15);
+    border-top-color: var(--blue-bright);
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .load-text { font-family: 'Outfit', sans-serif; font-size: 0.78rem; font-weight: 600; color: var(--blue-light); letter-spacing: 3px; text-transform: uppercase; animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
+
+  /* ─── Result Card ─── */
+  .result-card {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+    animation: fadeSlide 0.5s cubic-bezier(0.16,1,0.3,1) both;
+  }
+
+  .result-header {
+    background: linear-gradient(135deg, rgba(37,99,235,0.2), rgba(29,78,216,0.12));
+    border-bottom: 1px solid var(--border2);
+    padding: 1.5rem 2rem;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;
+  }
+  .track-code-badge {
+    font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800;
+    color: #fff; letter-spacing: 2px;
+  }
+  .track-code-badge span { color: var(--blue-light); }
+
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 0.45rem;
+    font-family: 'Outfit', sans-serif; font-size: 0.75rem; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    padding: 0.4rem 1rem; border-radius: 20px;
+  }
+  .status-pill.verified {
+    background: rgba(34,197,94,0.12);
+    border: 1px solid rgba(34,197,94,0.3);
+    color: #4ade80;
+  }
+  .status-pill.pending {
+    background: rgba(245,158,11,0.12);
+    border: 1px solid rgba(245,158,11,0.3);
+    color: #fbbf24;
+  }
+  .status-pill.in_transit {
+    background: rgba(96,165,250,0.12);
+    border: 1px solid rgba(96,165,250,0.3);
+    color: var(--blue-light);
+  }
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: currentColor;
+    animation: blink 1.5s ease-in-out infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* ─── Details Grid ─── */
+  .details-body { padding: 2rem; }
+
+  .details-section-title {
+    font-family: 'Outfit', sans-serif; font-size: 0.65rem; font-weight: 700;
+    letter-spacing: 3px; text-transform: uppercase; color: var(--blue-light);
+    margin-bottom: 1.25rem; padding-bottom: 0.6rem;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+
+  .details-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 1rem; margin-bottom: 2rem;
+  }
+  @media (max-width: 520px) { .details-grid { grid-template-columns: 1fr; } }
+
+  .detail-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 1rem 1.1rem;
+    transition: border-color 0.2s;
+  }
+  .detail-item:hover { border-color: var(--border2); }
+  .detail-item.full { grid-column: 1 / -1; }
+
+  .detail-key {
+    font-size: 0.65rem; font-weight: 600;
+    color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase;
+    margin-bottom: 0.4rem;
+  }
+  .detail-val {
+    font-family: 'Outfit', sans-serif; font-size: 0.95rem; font-weight: 600;
+    color: var(--text); letter-spacing: 0.2px; word-break: break-word;
+  }
+  .detail-val.mono { letter-spacing: 1.5px; color: var(--blue-light); font-size: 0.85rem; }
+  .detail-val.fee-val {
+    font-size: 1.4rem; font-weight: 800;
+    background: linear-gradient(90deg, #fff, #93c5fd);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+
+  /* ─── Journey Timeline ─── */
+  .timeline { padding: 0; list-style: none; }
+  .tl-item {
+    display: flex; gap: 1rem;
+    padding-bottom: 1.5rem; position: relative;
+  }
+  .tl-item:last-child { padding-bottom: 0; }
+  .tl-item:last-child .tl-line { display: none; }
+
+  .tl-dot-wrap {
+    display: flex; flex-direction: column; align-items: center;
+    flex-shrink: 0; width: 28px;
+  }
+  .tl-dot {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 0.9rem;
+    flex-shrink: 0; border: 2px solid var(--border2); background: var(--surface3);
+  }
+  .tl-dot.done { background: rgba(34,197,94,0.15); border-color: rgba(34,197,94,0.4); }
+  .tl-dot.active { background: var(--blue-dim); border-color: var(--blue-bright); box-shadow: 0 0 12px var(--blue-glow); }
+  .tl-dot.pending { background: var(--surface2); border-color: var(--border); opacity: 0.45; }
+  .tl-line {
+    width: 2px; flex: 1; background: var(--border); margin-top: 4px;
+    min-height: 20px;
+  }
+  .tl-line.done { background: rgba(34,197,94,0.35); }
+
+  .tl-content { padding-top: 3px; }
+  .tl-title { font-family: 'Outfit', sans-serif; font-size: 0.88rem; font-weight: 700; color: var(--text); }
+  .tl-title-row { display: flex; align-items: center; gap: 0.5rem; }
+  .tl-desc { font-size: 0.75rem; color: var(--muted); margin-top: 0.2rem; line-height: 1.5; }
+  .tl-time { font-size: 0.68rem; color: var(--muted2); margin-top: 0.2rem; font-family: 'Outfit', monospace; }
+
+  /* ─── Package Location Dot ─── */
+  .here-dot {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    font-family: 'Outfit', sans-serif; font-size: 0.6rem; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    color: #4ade80;
+    background: rgba(34,197,94,0.12);
+    border: 1px solid rgba(34,197,94,0.35);
+    padding: 0.18rem 0.55rem 0.18rem 0.4rem;
+    border-radius: 20px;
+    flex-shrink: 0;
+  }
+  .here-dot::before {
+    content: '';
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #4ade80;
+    box-shadow: 0 0 0 0 rgba(74,222,128,0.6);
+    animation: herePulse 1.6s ease-out infinite;
+    flex-shrink: 0;
+  }
+  @keyframes herePulse {
+    0%   { box-shadow: 0 0 0 0 rgba(74,222,128,0.7); }
+    60%  { box-shadow: 0 0 0 5px rgba(74,222,128,0); }
+    100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); }
+  }
+
+  /* ─── Footer ─── */
+  footer {
+    position: relative; z-index: 2;
+    border-top: 1px solid var(--border);
+    padding: 1.25rem 1.5rem;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;
+  }
+  footer p { font-size: 0.75rem; color: var(--muted2); }
+  .trust-row { display: flex; gap: 1.5rem; }
+  .trust-item { font-size: 0.7rem; color: var(--muted); display: flex; align-items: center; gap: 0.35rem; }
+  .trust-item::before { content: '✓'; color: var(--success); font-weight: 700; }
+
+  /* ─── Notice ─── */
+  .payment-notice {
+    background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(245,158,11,0.05));
+    border: 1px solid rgba(245,158,11,0.35);
+    border-radius: 12px; padding: 0.9rem 1rem;
+    margin-top: 1.5rem;
+    display: flex; gap: 0.65rem; align-items: flex-start;
+    font-size: 0.78rem; color: #fcd34d; line-height: 1.65;
+  }
+  .payment-notice strong { color: #fbbf24; }
+  .payment-notice-email {
+    display: inline-block;
+    font-family: 'Outfit', monospace; font-size: 0.75rem;
+    background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3);
+    color: #fcd34d; padding: 0.2rem 0.55rem; border-radius: 6px; letter-spacing: 0.3px;
+  }
+
+  /* ─── Live Indicator ─── */
+  .live-badge {
+    display: none;
+    align-items: center; gap: 0.4rem;
+    font-family: 'Outfit', sans-serif; font-size: 0.65rem; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: #4ade80;
+    background: rgba(34,197,94,0.08);
+    border: 1px solid rgba(34,197,94,0.25);
+    padding: 0.3rem 0.75rem; border-radius: 20px;
+  }
+  .live-badge.active { display: inline-flex; }
+  .live-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: #4ade80;
+    animation: blink 1.2s ease-in-out infinite;
+  }
+  .update-flash {
+    animation: flashBorder 0.7s ease-out;
+  }
+  @keyframes flashBorder {
+    0%   { box-shadow: 0 0 0 0 rgba(34,197,94,0.6); border-color: rgba(34,197,94,0.7); }
+    60%  { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
+    100% { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-layer"></div>
+<div class="grid-layer"></div>
+<div class="stars"></div>
+
+<!-- ─── HEADER ─── -->
+<header>
+  <a class="logo" href="index.html">
+    <div class="logo-svg-wrap">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+        <path d="M3 12l7-7 11 11" stroke="#93c5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M3 12c0 5 4 9 9 9s9-4 9-9" stroke="#60a5fa" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="logo-text-wrap">
+      <span class="logo-name">GLOBAL SKY</span>
+      <span class="logo-tagline">Shipment Tracking</span>
+    </div>
+  </a>
+  <div class="header-badge">✈ Track Your Package</div>
+</header>
+
+<!-- ─── MAIN ─── -->
+<div class="main">
+
+  <div class="hero-eyebrow">📦 Live Shipment Status</div>
+  <h1 class="hero-title">TRACK YOUR<br><span class="accent">PACKAGE</span></h1>
+  <p class="hero-sub">Enter your tracking code to see your shipment details, route, and real-time status.</p>
+
+  <!-- Search Card -->
+  <div class="search-card">
+    <div class="search-label">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="#60a5fa" stroke-width="2"/><path d="M21 21l-4-4" stroke="#60a5fa" stroke-width="2" stroke-linecap="round"/></svg>
+      Enter Tracking Code
+    </div>
+    <div class="search-row">
+      <input type="text" class="search-input" id="trackInput"
+        placeholder="e.g. GSS-12345"
+        maxlength="20"
+        oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9\-]/g,'')"
+        onkeydown="if(event.key==='Enter') doTrack()"
+      />
+      <button class="search-btn" id="trackBtn" onclick="doTrack()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Track
+      </button>
+    </div>
+    <p class="search-hint">Your tracking code starts with <strong style="color:var(--blue-light)">GSS-</strong> and was sent to your email after booking.</p>
+    <div class="error-box" id="errorBox"></div>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-box" id="loadingBox">
+    <div class="load-ring"></div>
+    <div class="load-text">Locating Shipment…</div>
+  </div>
+
+  <!-- Result -->
+  <div class="result-card" id="resultCard">
+    <div class="result-header">
+      <div>
+        <div style="font-size:0.65rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:0.4rem">Tracking Code</div>
+        <div class="track-code-badge"><span id="rTrackCode">—</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.65rem;flex-wrap:wrap">
+        <div id="statusPill" class="status-pill verified"><span class="status-dot"></span> <span id="statusText">Verified</span></div>
+        <div id="liveBadge" class="live-badge"><span class="live-dot"></span> Live</div>
+      </div>
+    </div>
+
+    <div class="details-body">
+
+      <!-- Recipient -->
+      <div class="details-section-title">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#60a5fa" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#60a5fa" stroke-width="2" stroke-linecap="round"/></svg>
+        Recipient Details
+      </div>
+      <div class="details-grid">
+        <div class="detail-item">
+          <div class="detail-key">Recipient Name</div>
+          <div class="detail-val" id="rFullName">—</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-key">Sender Name</div>
+          <div class="detail-val" id="rSenderName">—</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-key">Phone Number</div>
+          <div class="detail-val" id="rPhone">—</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-key">Email Address</div>
+          <div class="detail-val" id="rEmail" style="font-size:0.82rem">—</div>
+        </div>
+        <div class="detail-item full">
+          <div class="detail-key">Package Code (Sender's Ref)</div>
+          <div class="detail-val mono" id="rPackageNumber">—</div>
+        </div>
+      </div>
+
+      <!-- Delivery -->
+      <div class="details-section-title">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2C8 2 4 5.5 4 10c0 6 8 12 8 12s8-6 8-12c0-4.5-4-8-8-8z" stroke="#60a5fa" stroke-width="2"/><circle cx="12" cy="10" r="2.5" stroke="#60a5fa" stroke-width="2"/></svg>
+        Delivery Location
+      </div>
+      <div class="details-grid">
+        <div class="detail-item">
+          <div class="detail-key">Country</div>
+          <div class="detail-val" id="rCountry">—</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-key">Airport Hub</div>
+          <div class="detail-val" id="rAirport" style="font-size:0.82rem">—</div>
+        </div>
+        <div class="detail-item full">
+          <div class="detail-key">Home / Pickup Address</div>
+          <div class="detail-val" id="rAddress">—</div>
+        </div>
+      </div>
+
+      <!-- Fee -->
+      <div class="details-section-title">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><rect x="2" y="6" width="20" height="13" rx="3" stroke="#60a5fa" stroke-width="2"/><path d="M2 10h20" stroke="#60a5fa" stroke-width="2"/></svg>
+        Delivery Fee
+      </div>
+      <div class="details-grid" style="margin-bottom:0">
+        <div class="detail-item">
+          <div class="detail-key">Total Fee (USD)</div>
+          <div class="detail-val fee-val" id="rFee">—</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-key">Booking Date</div>
+          <div class="detail-val" id="rDate">—</div>
+        </div>
+      </div>
+
+      <div class="payment-notice">
+        <span style="font-size:1rem;flex-shrink:0">⚠️</span>
+        <div>
+          <strong>Payment Notice:</strong> You will only be required to pay the delivery fee once your package has arrived at the airport. Do not pay before then.<br>
+          All official payment instructions come exclusively from: <span class="payment-notice-email">globalskyshipment247@gmail.com</span>
+        </div>
+      </div>
+
+      <!-- Timeline -->
+      <div style="margin-top:2rem">
+        <div class="details-section-title">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#60a5fa" stroke-width="2"/><path d="M12 7v5l3 3" stroke="#60a5fa" stroke-width="2" stroke-linecap="round"/></svg>
+          Shipment Journey
+        </div>
+        <ul class="timeline" id="timeline"></ul>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- ─── FOOTER ─── -->
+<footer>
+  <p>© 2025 Global Sky Shipment Ltd. All rights reserved.</p>
+  <div class="trust-row">
+    <div class="trust-item">SSL Encrypted</div>
+    <div class="trust-item">IATA Certified</div>
+    <div class="trust-item">24/7 Live Support</div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+// ── SUPABASE CONFIG ──────────────────────────────────────────────────────────
+const SUPABASE_URL  = 'https://azxbtwklromrnmyutmoz.supabase.co';
+const SUPABASE_ANON = 'sb_publishable_MaHxITBZRvjweKDwS4cr8g__A6jZI0k';
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+// ── REALTIME STATE ───────────────────────────────────────────────────────────
+let _realtimeChannel = null;
+let _fallbackPoll    = null;
+let _currentRaw      = null;
+
+// ── AUTO-FILL FROM URL PARAM ─────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  if (code) {
+    document.getElementById('trackInput').value = code.toUpperCase();
+    doTrack();
+  }
+});
+
+// ── CLEANUP live subscriptions ───────────────────────────────────────────────
+function stopLive() {
+  if (_realtimeChannel) {
+    _supabase.removeChannel(_realtimeChannel);
+    _realtimeChannel = null;
+  }
+  if (_fallbackPoll) {
+    clearInterval(_fallbackPoll);
+    _fallbackPoll = null;
+  }
+  document.getElementById('liveBadge').classList.remove('active');
+}
+
+// ── START Realtime + fallback poll ───────────────────────────────────────────
+function startLive(raw) {
+  stopLive();
+  _currentRaw = raw;
+
+  // ── Supabase Realtime: subscribe to row changes for this tracking code ──
+  _realtimeChannel = _supabase
+    .channel('track-' + raw)
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'bookings',
+        filter: `track_code=eq.${raw}`
+      },
+      (payload) => {
+        if (payload.new) {
+          populateResult(payload.new);
+          flashCard();
+        }
+      }
+    )
+    .subscribe((status) => {
+      const badge = document.getElementById('liveBadge');
+      if (status === 'SUBSCRIBED') {
+        badge.classList.add('active');
+      } else {
+        badge.classList.remove('active');
+      }
+    });
+
+  // ── Fallback poll every 30s in case Realtime drops ──────────────────────
+  _fallbackPoll = setInterval(async () => {
+    const { data: fresh, error } = await _supabase
+      .from('bookings')
+      .select('*')
+      .eq('track_code', raw)
+      .single();
+    if (!error && fresh) populateResult(fresh);
+  }, 30000);
+}
+
+// ── Flash the result card border on live update ──────────────────────────────
+function flashCard() {
+  const card = document.getElementById('resultCard');
+  card.classList.remove('update-flash');
+  // Force reflow so animation re-triggers
+  void card.offsetWidth;
+  card.classList.add('update-flash');
+}
+
+// ── TRACK ────────────────────────────────────────────────────────────────────
+async function doTrack() {
+  stopLive();
+  const raw    = document.getElementById('trackInput').value.trim().toUpperCase();
+  const errBox  = document.getElementById('errorBox');
+  const loading = document.getElementById('loadingBox');
+  const result  = document.getElementById('resultCard');
+
+  errBox.style.display  = 'none';
+  result.style.display  = 'none';
+  loading.style.display = 'none';
+
+  if (!raw) {
+    showError('Please enter a tracking code.');
+    return;
+  }
+  if (!raw.startsWith('GSS-') || raw.length < 8) {
+    showError('Invalid format. Tracking codes start with <strong>GSS-</strong> followed by 5 digits (e.g. GSS-12345).');
+    return;
+  }
+
+  loading.style.display = 'flex';
+  document.getElementById('trackBtn').disabled = true;
+
+  try {
+    const { data, error } = await _supabase
+      .from('bookings')
+      .select('*')
+      .eq('track_code', raw)
+      .single();
+
+    loading.style.display = 'none';
+    document.getElementById('trackBtn').disabled = false;
+
+    if (error || !data) {
+      showError('No shipment found for <strong>' + raw + '</strong>. Please check the code and try again.');
+      return;
+    }
+
+    populateResult(data);
+    result.style.display = 'block';
+    result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // Start Realtime subscription for instant admin-driven updates
+    startLive(raw);
+
+  } catch (err) {
+    loading.style.display = 'none';
+    document.getElementById('trackBtn').disabled = false;
+    showError('An error occurred. Please try again.');
+    console.error(err);
+  }
+}
+
+// ── POPULATE ─────────────────────────────────────────────────────────────────
+function populateResult(d) {
+  // Header
+  document.getElementById('rTrackCode').textContent = d.track_code || '—';
+
+  // Status pill
+  const pill = document.getElementById('statusPill');
+  const statusText = document.getElementById('statusText');
+  const rawStatus = (d.status || 'pending').toLowerCase();
+
+  pill.className = 'status-pill';
+  if (rawStatus === 'verified') {
+    pill.classList.add('verified');
+    statusText.textContent = '✓ Verified';
+  } else if (rawStatus === 'in_transit') {
+    pill.classList.add('in_transit');
+    statusText.textContent = '✈ In Transit';
+  } else if (rawStatus === 'arrived') {
+    pill.classList.add('in_transit'); // reuse blue style
+    statusText.textContent = '🛬 At Airport Hub';
+  } else if (rawStatus === 'delivered') {
+    pill.classList.add('verified'); // reuse green style
+    statusText.textContent = '🎉 Delivered';
+  } else {
+    pill.classList.add('pending');
+    statusText.textContent = '⏳ Pending Verification';
+  }
+
+  // Details
+  document.getElementById('rFullName').textContent      = d.full_name      || '—';
+  document.getElementById('rSenderName').textContent    = d.sender_name    || '—';
+  document.getElementById('rPhone').textContent         = d.phone          || '—';
+  document.getElementById('rEmail').textContent         = d.email          || '—';
+  document.getElementById('rPackageNumber').textContent = d.package_number || '—';
+  document.getElementById('rCountry').textContent       = d.country        || '—';
+  document.getElementById('rAirport').textContent       = d.airport        || '—';
+  document.getElementById('rAddress').textContent       = d.address        || '—';
+  document.getElementById('rFee').textContent           = d.fee            || '—';
+
+  // Date
+  if (d.created_at) {
+    const dt = new Date(d.created_at);
+    document.getElementById('rDate').textContent = dt.toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    });
+  } else {
+    document.getElementById('rDate').textContent = '—';
+  }
+
+  // Timeline
+  buildTimeline(d);
+}
+
+// ── TIMELINE ─────────────────────────────────────────────────────────────────
+function buildTimeline(d) {
+  const status = (d.status || 'pending').toLowerCase();
+  const bookedDate = d.created_at ? new Date(d.created_at).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : '';
+  const airport = d.airport ? d.airport.split('—')[0].trim() : 'Airport';
+  const country = d.country || 'destination';
+
+  const steps = [
+    {
+      icon: '📋',
+      title: 'Booking Confirmed',
+      desc: `Shipment booked by ${d.sender_name || 'sender'}. Package code: ${d.package_number || '—'}`,
+      time: bookedDate,
+      state: 'done',
+      here: false
+    },
+    {
+      icon: '✅',
+      title: 'Identity Verified',
+      desc: `Recipient email verified. Booking assigned tracking code ${d.track_code}.`,
+      time: bookedDate,
+      state: (status === 'verified' || status === 'in_transit' || status === 'arrived' || status === 'delivered') ? 'done' : (status === 'pending_verification' ? 'active' : 'pending'),
+      here: status === 'verified' || status === 'pending_verification'
+    },
+    {
+      icon: '✈️',
+      title: 'Package In Transit',
+      desc: `Package en route to ${airport} hub in ${country}.`,
+      time: status === 'in_transit' ? 'In progress' : (status === 'arrived' || status === 'delivered' ? 'Completed' : 'Awaiting'),
+      state: status === 'in_transit' ? 'active' : (status === 'arrived' || status === 'delivered' ? 'done' : 'pending'),
+      here: status === 'in_transit'
+    },
+    {
+      icon: '🛬',
+      title: 'Arrived at Airport Hub',
+      desc: `Package arrived at ${airport}. Delivery fee of ${d.fee || '—'} now due. You will be contacted at ${d.email || 'your email'}.`,
+      time: status === 'arrived' ? 'In progress' : (status === 'delivered' ? 'Completed' : 'Pending'),
+      state: status === 'arrived' ? 'active' : (status === 'delivered' ? 'done' : 'pending'),
+      here: status === 'arrived'
+    },
+    {
+      icon: '🏠',
+      title: 'Out for Delivery',
+      desc: `Package dispatched to ${d.address || 'your address'}.`,
+      time: status === 'delivered' ? 'Completed' : 'Pending',
+      state: status === 'delivered' ? 'done' : 'pending',
+      here: false
+    },
+    {
+      icon: '🎉',
+      title: 'Delivered',
+      desc: 'Package successfully delivered to recipient.',
+      time: status === 'delivered' ? 'Completed' : 'Pending',
+      state: status === 'delivered' ? 'done' : 'pending',
+      here: status === 'delivered'
+    }
+  ];
+
+  const tl = document.getElementById('timeline');
+  tl.innerHTML = '';
+
+  steps.forEach((s, i) => {
+    const li = document.createElement('li');
+    li.className = 'tl-item';
+    const lineClass = (s.state === 'done') ? 'tl-line done' : 'tl-line';
+    const hereBadge = s.here ? `<span class="here-dot">Package Here</span>` : '';
+    li.innerHTML = `
+      <div class="tl-dot-wrap">
+        <div class="tl-dot ${s.state}">${s.icon}</div>
+        ${i < steps.length - 1 ? `<div class="${lineClass}"></div>` : ''}
+      </div>
+      <div class="tl-content">
+        <div class="tl-title-row">
+          <div class="tl-title">${s.title}</div>
+          ${hereBadge}
+        </div>
+        <div class="tl-desc">${s.desc}</div>
+        <div class="tl-time">${s.time}</div>
+      </div>
+    `;
+    tl.appendChild(li);
+  });
+}
+
+// ── ERROR ────────────────────────────────────────────────────────────────────
+function showError(msg) {
+  const el = document.getElementById('errorBox');
+  el.innerHTML = '⚠ ' + msg;
+  el.style.display = 'block';
+}
+</script>
+
+</body>
+</html>
