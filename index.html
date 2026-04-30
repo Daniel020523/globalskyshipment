@@ -468,7 +468,7 @@
       <input type="text" class="search-input" id="trackInput"
         placeholder="e.g. GSS-12345"
         maxlength="20"
-        oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9\-]/g,'')"
+        oninput="formatTrackInput(this)"
         onkeydown="if(event.key==='Enter') doTrack()"
       />
       <button class="search-btn" id="trackBtn" onclick="doTrack()">
@@ -875,7 +875,19 @@ function buildTimeline(d) {
   });
 }
 
-// ── ERROR ────────────────────────────────────────────────────────────────────
+// ── FORMAT TRACK INPUT ───────────────────────────────────────────────────────
+function formatTrackInput(el) {
+  let val = el.value.toUpperCase().replace(/[^A-Z0-9\-]/g, '');
+  // Auto-insert hyphen once user has typed "GSS"
+  if (val === 'GSS') val = 'GSS-';
+  // Prevent duplicate hyphens / enforce GSS- prefix
+  if (val.startsWith('GSS-')) {
+    val = 'GSS-' + val.slice(4).replace(/[^0-9]/g, '');
+  }
+  el.value = val;
+}
+
+
 function showError(msg) {
   const el = document.getElementById('errorBox');
   el.innerHTML = '⚠ ' + msg;
