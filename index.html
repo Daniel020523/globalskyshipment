@@ -25,10 +25,6 @@
     --muted: #6b8ec7;
     --muted2: #4a6fa5;
     --success: #22c55e;
-    --success-dim: rgba(34,197,94,0.12);
-    --danger: #ef4444;
-    --warning: #f59e0b;
-    --warning-dim: rgba(245,158,11,0.12);
   }
 
   html { scroll-behavior: smooth; }
@@ -114,7 +110,8 @@
   .main {
     position: relative; z-index: 2;
     max-width: 760px; margin: 0 auto;
-    padding: 3rem 1.25rem 5rem;
+    padding: 5rem 1.25rem 6rem;
+    display: flex; flex-direction: column; align-items: center; text-align: center;
   }
 
   /* ─── Hero Text ─── */
@@ -122,36 +119,40 @@
     display: inline-flex; align-items: center; gap: 0.5rem;
     font-family: 'Outfit', sans-serif; font-size: 0.68rem; font-weight: 600;
     color: var(--blue-light); letter-spacing: 3px; text-transform: uppercase;
-    margin-bottom: 1rem;
+    margin-bottom: 1.25rem;
     background: var(--blue-dim); border: 1px solid var(--border2);
     padding: 0.35rem 0.85rem; border-radius: 20px;
+    animation: fadeSlide 0.5s cubic-bezier(0.16,1,0.3,1) both;
   }
   .hero-title {
     font-family: 'Outfit', sans-serif; font-weight: 900;
-    font-size: clamp(2rem, 8vw, 4rem);
-    letter-spacing: -1px; line-height: 1.05;
-    color: #fff; margin-bottom: 0.5rem;
+    font-size: clamp(2.4rem, 9vw, 4.5rem);
+    letter-spacing: -1.5px; line-height: 1.04;
+    color: #fff; margin-bottom: 0.75rem;
+    animation: fadeSlide 0.55s cubic-bezier(0.16,1,0.3,1) 0.05s both;
   }
   .hero-title .accent {
     background: linear-gradient(90deg, #60a5fa, #2563eb);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   }
   .hero-sub {
-    color: var(--muted); font-size: 0.95rem; font-weight: 300;
-    margin-bottom: 2.5rem; line-height: 1.6;
+    color: var(--muted); font-size: 1rem; font-weight: 300;
+    margin-bottom: 3rem; line-height: 1.65; max-width: 520px;
+    animation: fadeSlide 0.6s cubic-bezier(0.16,1,0.3,1) 0.1s both;
   }
 
-  /* ─── Search Box ─── */
+  @keyframes fadeSlide { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+  /* ─── Search Card ─── */
   .search-card {
+    width: 100%;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 20px;
-    padding: 2rem;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-    margin-bottom: 2.5rem;
-    animation: fadeSlide 0.6s cubic-bezier(0.16,1,0.3,1) both;
+    padding: 2rem 2rem 1.75rem;
+    box-shadow: 0 24px 70px rgba(0,0,0,0.55);
+    animation: fadeSlide 0.65s cubic-bezier(0.16,1,0.3,1) 0.15s both;
   }
-  @keyframes fadeSlide { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
 
   .search-label {
     font-family: 'Outfit', sans-serif; font-size: 0.68rem; font-weight: 700;
@@ -169,7 +170,7 @@
     background: var(--surface2);
     border: 1.5px solid var(--border2);
     border-radius: 12px;
-    padding: 0.9rem 1.1rem;
+    padding: 0.95rem 1.1rem;
     color: var(--white);
     font-family: 'Outfit', sans-serif; font-size: 1rem; font-weight: 600;
     letter-spacing: 2px; text-transform: uppercase;
@@ -184,7 +185,7 @@
   }
 
   .search-btn {
-    padding: 0.9rem 1.8rem;
+    padding: 0.95rem 1.9rem;
     background: linear-gradient(135deg, #2563eb, #1d4ed8);
     border: none; border-radius: 12px; color: #fff;
     font-family: 'Outfit', sans-serif; font-size: 0.9rem; font-weight: 700;
@@ -195,9 +196,8 @@
   }
   .search-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(37,99,235,0.55); }
   .search-btn:active { transform: translateY(0); }
-  .search-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
 
-  .search-hint { font-size: 0.75rem; color: var(--muted2); margin-top: 0.75rem; }
+  .search-hint { font-size: 0.75rem; color: var(--muted2); margin-top: 0.85rem; text-align: left; }
 
   /* ─── Error ─── */
   .error-box {
@@ -206,284 +206,30 @@
     border: 1px solid rgba(239,68,68,0.3);
     border-radius: 12px; padding: 1rem 1.1rem;
     margin-top: 1rem; color: #fca5a5; font-size: 0.85rem; line-height: 1.5;
+    text-align: left;
   }
 
-  /* ─── Loading ─── */
-  .loading-box {
-    display: none;
-    flex-direction: column; align-items: center; gap: 1rem;
-    padding: 2.5rem 1rem; text-align: center;
+  /* ─── Trust row below card ─── */
+  .trust-row {
+    display: flex; gap: 2rem; justify-content: center; flex-wrap: wrap;
+    margin-top: 2rem;
+    animation: fadeSlide 0.7s cubic-bezier(0.16,1,0.3,1) 0.2s both;
   }
-  .load-ring {
-    width: 56px; height: 56px; border-radius: 50%;
-    border: 2.5px solid rgba(96,165,250,0.15);
-    border-top-color: var(--blue-bright);
-    animation: spin 0.9s linear infinite;
+  .trust-item {
+    font-size: 0.72rem; color: var(--muted);
+    display: flex; align-items: center; gap: 0.4rem;
   }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .load-text { font-family: 'Outfit', sans-serif; font-size: 0.78rem; font-weight: 600; color: var(--blue-light); letter-spacing: 3px; text-transform: uppercase; animation: pulse 1.4s ease-in-out infinite; }
-  @keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
-
-  /* ─── Result Card ─── */
-  .result-card {
-    display: none;
-    background: var(--surface);
-    border: 1px solid var(--border2);
-    border-radius: 20px;
-    overflow: hidden;
-    box-shadow: 0 30px 80px rgba(0,0,0,0.5);
-    animation: fadeSlide 0.5s cubic-bezier(0.16,1,0.3,1) both;
-  }
-
-  .result-header {
-    background: linear-gradient(135deg, rgba(37,99,235,0.2), rgba(29,78,216,0.12));
-    border-bottom: 1px solid var(--border2);
-    padding: 1.5rem 2rem;
-    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;
-  }
-  .track-code-badge {
-    font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800;
-    color: #fff; letter-spacing: 2px;
-  }
-  .track-code-badge span { color: var(--blue-light); }
-
-  .status-pill {
-    display: inline-flex; align-items: center; gap: 0.45rem;
-    font-family: 'Outfit', sans-serif; font-size: 0.75rem; font-weight: 700;
-    letter-spacing: 1.5px; text-transform: uppercase;
-    padding: 0.4rem 1rem; border-radius: 20px;
-  }
-  .status-pill.verified {
-    background: rgba(34,197,94,0.12);
-    border: 1px solid rgba(34,197,94,0.3);
-    color: #4ade80;
-  }
-  .status-pill.pending {
-    background: rgba(245,158,11,0.12);
-    border: 1px solid rgba(245,158,11,0.3);
-    color: #fbbf24;
-  }
-  .status-pill.in_transit {
-    background: rgba(96,165,250,0.12);
-    border: 1px solid rgba(96,165,250,0.3);
-    color: var(--blue-light);
-  }
-  .status-dot {
-    width: 7px; height: 7px; border-radius: 50%; background: currentColor;
-    animation: blink 1.5s ease-in-out infinite;
-  }
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
-
-  /* ─── Details Grid ─── */
-  .details-body { padding: 2rem; }
-
-  .details-section-title {
-    font-family: 'Outfit', sans-serif; font-size: 0.65rem; font-weight: 700;
-    letter-spacing: 3px; text-transform: uppercase; color: var(--blue-light);
-    margin-bottom: 1.25rem; padding-bottom: 0.6rem;
-    border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; gap: 0.5rem;
-  }
-
-  .details-grid {
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 1rem; margin-bottom: 2rem;
-  }
-  @media (max-width: 520px) { .details-grid { grid-template-columns: 1fr; } }
-
-  .detail-item {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 12px; padding: 1rem 1.1rem;
-    transition: border-color 0.2s;
-  }
-  .detail-item:hover { border-color: var(--border2); }
-  .detail-item.full { grid-column: 1 / -1; }
-
-  .detail-key {
-    font-size: 0.65rem; font-weight: 600;
-    color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase;
-    margin-bottom: 0.4rem;
-  }
-  .detail-val {
-    font-family: 'Outfit', sans-serif; font-size: 0.95rem; font-weight: 600;
-    color: var(--text); letter-spacing: 0.2px; word-break: break-word;
-  }
-  .detail-val.mono { letter-spacing: 1.5px; color: var(--blue-light); font-size: 0.85rem; }
-  .detail-val.fee-val {
-    font-size: 1.4rem; font-weight: 800;
-    background: linear-gradient(90deg, #fff, #93c5fd);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  }
-
-  /* ─── Journey Timeline ─── */
-  .timeline { padding: 0; list-style: none; }
-  .tl-item {
-    display: flex; gap: 1rem;
-    padding-bottom: 1.5rem; position: relative;
-  }
-  .tl-item:last-child { padding-bottom: 0; }
-  .tl-item:last-child .tl-line { display: none; }
-
-  .tl-dot-wrap {
-    display: flex; flex-direction: column; align-items: center;
-    flex-shrink: 0; width: 28px;
-  }
-  .tl-dot {
-    width: 28px; height: 28px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center; font-size: 0.9rem;
-    flex-shrink: 0; border: 2px solid var(--border2); background: var(--surface3);
-  }
-  .tl-dot.done { background: rgba(34,197,94,0.15); border-color: rgba(34,197,94,0.4); }
-  .tl-dot.active { background: var(--blue-dim); border-color: var(--blue-bright); box-shadow: 0 0 12px var(--blue-glow); }
-  .tl-dot.pending { background: var(--surface2); border-color: var(--border); opacity: 0.45; }
-  .tl-line {
-    width: 2px; flex: 1; background: var(--border); margin-top: 4px;
-    min-height: 20px;
-  }
-  .tl-line.done { background: rgba(34,197,94,0.35); }
-
-  .tl-content { padding-top: 3px; }
-  .tl-title { font-family: 'Outfit', sans-serif; font-size: 0.88rem; font-weight: 700; color: var(--text); }
-  .tl-title-row { display: flex; align-items: center; gap: 0.5rem; }
-  .tl-desc { font-size: 0.75rem; color: var(--muted); margin-top: 0.2rem; line-height: 1.5; }
-  .tl-time { font-size: 0.68rem; color: var(--muted2); margin-top: 0.2rem; font-family: 'Outfit', monospace; }
-
-  /* ─── Package Location Dot ─── */
-  .here-dot {
-    display: inline-flex; align-items: center; gap: 0.3rem;
-    font-family: 'Outfit', sans-serif; font-size: 0.6rem; font-weight: 700;
-    letter-spacing: 1.5px; text-transform: uppercase;
-    color: #4ade80;
-    background: rgba(34,197,94,0.12);
-    border: 1px solid rgba(34,197,94,0.35);
-    padding: 0.18rem 0.55rem 0.18rem 0.4rem;
-    border-radius: 20px;
-    flex-shrink: 0;
-  }
-  .here-dot::before {
-    content: '';
-    display: inline-block;
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: #4ade80;
-    box-shadow: 0 0 0 0 rgba(74,222,128,0.6);
-    animation: herePulse 1.6s ease-out infinite;
-    flex-shrink: 0;
-  }
-  @keyframes herePulse {
-    0%   { box-shadow: 0 0 0 0 rgba(74,222,128,0.7); }
-    60%  { box-shadow: 0 0 0 5px rgba(74,222,128,0); }
-    100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); }
-  }
+  .trust-item::before { content: '✓'; color: var(--success); font-weight: 700; }
 
   /* ─── Footer ─── */
   footer {
     position: relative; z-index: 2;
     border-top: 1px solid var(--border);
     padding: 1.25rem 1.5rem;
-    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;
+    display: flex; align-items: center; justify-content: center;
+    flex-wrap: wrap; gap: 0.75rem;
   }
   footer p { font-size: 0.75rem; color: var(--muted2); }
-  .trust-row { display: flex; gap: 1.5rem; }
-  .trust-item { font-size: 0.7rem; color: var(--muted); display: flex; align-items: center; gap: 0.35rem; }
-  .trust-item::before { content: '✓'; color: var(--success); font-weight: 700; }
-
-  /* ─── Notice ─── */
-  .payment-notice {
-    background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(245,158,11,0.05));
-    border: 1px solid rgba(245,158,11,0.35);
-    border-radius: 12px; padding: 0.9rem 1rem;
-    margin-top: 1.5rem;
-    display: flex; gap: 0.65rem; align-items: flex-start;
-    font-size: 0.78rem; color: #fcd34d; line-height: 1.65;
-  }
-  .payment-notice strong { color: #fbbf24; }
-  .payment-notice-email {
-    display: inline-block;
-    font-family: 'Outfit', monospace; font-size: 0.75rem;
-    background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3);
-    color: #fcd34d; padding: 0.2rem 0.55rem; border-radius: 6px; letter-spacing: 0.3px;
-  }
-
-  /* ─── Live Indicator ─── */
-  .live-badge {
-    display: none;
-    align-items: center; gap: 0.4rem;
-    font-family: 'Outfit', sans-serif; font-size: 0.65rem; font-weight: 700;
-    letter-spacing: 2px; text-transform: uppercase;
-    color: #4ade80;
-    background: rgba(34,197,94,0.08);
-    border: 1px solid rgba(34,197,94,0.25);
-    padding: 0.3rem 0.75rem; border-radius: 20px;
-  }
-  .live-badge.active { display: inline-flex; }
-  .live-dot {
-    width: 6px; height: 6px; border-radius: 50%; background: #4ade80;
-    animation: blink 1.2s ease-in-out infinite;
-  }
-  .update-flash {
-    animation: flashBorder 0.7s ease-out;
-  }
-  @keyframes flashBorder {
-    0%   { box-shadow: 0 0 0 0 rgba(34,197,94,0.6); border-color: rgba(34,197,94,0.7); }
-    60%  { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
-    100% { box-shadow: none; }
-  }
-
-  /* ─── Floating Message Button ─── */
-  .float-msg-btn {
-    position: fixed;
-    bottom: 1.75rem;
-    right: 1.75rem;
-    z-index: 999;
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
-    color: #fff;
-    border: none;
-    border-radius: 50px;
-    padding: 0.8rem 1.3rem 0.8rem 1rem;
-    font-family: 'Outfit', sans-serif;
-    font-size: 0.85rem;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    cursor: pointer;
-    box-shadow: 0 6px 28px rgba(37,99,235,0.55), 0 2px 8px rgba(0,0,0,0.4);
-    transition: transform 0.18s, box-shadow 0.18s;
-    text-decoration: none;
-    animation: floatIn 0.5s cubic-bezier(0.16,1,0.3,1) 0.8s both;
-  }
-  @keyframes floatIn {
-    from { opacity: 0; transform: translateY(20px) scale(0.9); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
-  }
-  .float-msg-btn:hover {
-    transform: translateY(-3px) scale(1.04);
-    box-shadow: 0 10px 36px rgba(37,99,235,0.7), 0 2px 10px rgba(0,0,0,0.4);
-  }
-  .float-msg-btn:active { transform: translateY(0) scale(0.98); }
-  .float-msg-btn .fmb-icon {
-    width: 32px; height: 32px;
-    background: rgba(255,255,255,0.15);
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-  .float-msg-btn .fmb-pulse {
-    position: absolute;
-    top: -3px; right: -3px;
-    width: 11px; height: 11px;
-    background: #22c55e;
-    border: 2px solid var(--bg);
-    border-radius: 50%;
-    animation: fmbPulse 2s ease-in-out infinite;
-  }
-  @keyframes fmbPulse {
-    0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.6); }
-    50%      { box-shadow: 0 0 0 5px rgba(34,197,94,0); }
-  }
 </style>
 </head>
 <body>
@@ -495,14 +241,13 @@
 <!-- ─── HEADER ─── -->
 <header>
   <a class="logo" href="index.html">
-    <!-- Replace YOUR_LOGO.png with the filename of your image -->
     <img src="GLOBALSKY.png.jpg" alt="Global Sky Shipments Logo" class="logo-img" />
     <div class="logo-text-wrap">
       <span class="logo-name">GLOBAL SKY</span>
       <span class="logo-tagline">Shipment Tracking</span>
     </div>
   </a>
-  <div class="header-badge">✈ Track Your Package</div>
+  <div class="header-badge">✈ Shipment Tracking</div>
 </header>
 
 <!-- ─── MAIN ─── -->
@@ -510,7 +255,7 @@
 
   <div class="hero-eyebrow">📦 Live Shipment Status</div>
   <h1 class="hero-title">TRACK YOUR<br><span class="accent">PACKAGE</span></h1>
-  <p class="hero-sub">Enter your tracking code to see your shipment details, route, and real-time status.</p>
+  <p class="hero-sub">Enter your tracking code below to see your shipment details, route, and real-time delivery status.</p>
 
   <!-- Search Card -->
   <div class="search-card">
@@ -523,9 +268,10 @@
         placeholder="e.g. GSS-12345"
         maxlength="20"
         oninput="formatTrackInput(this)"
-        onkeydown="if(event.key==='Enter') doTrack()"
+        onkeydown="if(event.key==='Enter') goTrack()"
+        autofocus
       />
-      <button class="search-btn" id="trackBtn" onclick="doTrack()">
+      <button class="search-btn" onclick="goTrack()">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         Track
       </button>
@@ -534,109 +280,12 @@
     <div class="error-box" id="errorBox"></div>
   </div>
 
-  <!-- Loading -->
-  <div class="loading-box" id="loadingBox">
-    <div class="load-ring"></div>
-    <div class="load-text">Locating Shipment…</div>
-  </div>
-
-  <!-- Result -->
-  <div class="result-card" id="resultCard">
-    <div class="result-header">
-      <div>
-        <div style="font-size:0.65rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:0.4rem">Tracking Code</div>
-        <div class="track-code-badge"><span id="rTrackCode">—</span></div>
-      </div>
-      <div style="display:flex;align-items:center;gap:0.65rem;flex-wrap:wrap">
-        <div id="statusPill" class="status-pill verified"><span class="status-dot"></span> <span id="statusText">Verified</span></div>
-        <div id="liveBadge" class="live-badge"><span class="live-dot"></span> Live</div>
-      </div>
-    </div>
-
-    <div class="details-body">
-
-      <!-- Recipient -->
-      <div class="details-section-title">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#60a5fa" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#60a5fa" stroke-width="2" stroke-linecap="round"/></svg>
-        Recipient Details
-      </div>
-      <div class="details-grid">
-        <div class="detail-item">
-          <div class="detail-key">Recipient Name</div>
-          <div class="detail-val" id="rFullName">—</div>
-        </div>
-        <div class="detail-item">
-          <div class="detail-key">Sender Name</div>
-          <div class="detail-val" id="rSenderName">—</div>
-        </div>
-        <div class="detail-item">
-          <div class="detail-key">Phone Number</div>
-          <div class="detail-val" id="rPhone">—</div>
-        </div>
-        <div class="detail-item">
-          <div class="detail-key">Email Address</div>
-          <div class="detail-val" id="rEmail" style="font-size:0.82rem">—</div>
-        </div>
-        <div class="detail-item full">
-          <div class="detail-key">Package Code (Sender's Ref)</div>
-          <div class="detail-val mono" id="rPackageNumber">—</div>
-        </div>
-      </div>
-
-      <!-- Delivery -->
-      <div class="details-section-title">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2C8 2 4 5.5 4 10c0 6 8 12 8 12s8-6 8-12c0-4.5-4-8-8-8z" stroke="#60a5fa" stroke-width="2"/><circle cx="12" cy="10" r="2.5" stroke="#60a5fa" stroke-width="2"/></svg>
-        Delivery Location
-      </div>
-      <div class="details-grid">
-        <div class="detail-item">
-          <div class="detail-key">Country</div>
-          <div class="detail-val" id="rCountry">—</div>
-        </div>
-        <div class="detail-item">
-          <div class="detail-key">Airport Hub</div>
-          <div class="detail-val" id="rAirport" style="font-size:0.82rem">—</div>
-        </div>
-        <div class="detail-item full">
-          <div class="detail-key">Home / Pickup Address</div>
-          <div class="detail-val" id="rAddress">—</div>
-        </div>
-      </div>
-
-      <!-- Fee -->
-      <div class="details-section-title">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><rect x="2" y="6" width="20" height="13" rx="3" stroke="#60a5fa" stroke-width="2"/><path d="M2 10h20" stroke="#60a5fa" stroke-width="2"/></svg>
-        Delivery Fee
-      </div>
-      <div class="details-grid" style="margin-bottom:0">
-        <div class="detail-item">
-          <div class="detail-key">Total Fee (USD)</div>
-          <div class="detail-val fee-val" id="rFee">—</div>
-        </div>
-        <div class="detail-item">
-          <div class="detail-key">Booking Date</div>
-          <div class="detail-val" id="rDate">—</div>
-        </div>
-      </div>
-
-      <div class="payment-notice">
-        <span style="font-size:1rem;flex-shrink:0">⚠️</span>
-        <div>
-          <strong>Payment Notice:</strong> You will only be required to pay the delivery fee once your package has arrived at the airport. Do not pay before then.<br>
-          All official payment instructions come exclusively from: <span class="payment-notice-email">globalskyshipment247@gmail.com</span>
-        </div>
-      </div>
-
-      <!-- Timeline -->
-      <div style="margin-top:2rem">
-        <div class="details-section-title">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#60a5fa" stroke-width="2"/><path d="M12 7v5l3 3" stroke="#60a5fa" stroke-width="2" stroke-linecap="round"/></svg>
-          Shipment Journey
-        </div>
-        <ul class="timeline" id="timeline"></ul>
-      </div>
-
-    </div>
+  <!-- Trust badges -->
+  <div class="trust-row">
+    <div class="trust-item">SSL Encrypted</div>
+    <div class="trust-item">IATA Certified</div>
+    <div class="trust-item">24/7 Live Support</div>
+    <div class="trust-item">Real-Time Updates</div>
   </div>
 
 </div>
@@ -644,122 +293,27 @@
 <!-- ─── FOOTER ─── -->
 <footer>
   <p>© 2025 Global Sky Shipment Ltd. All rights reserved.</p>
-  <div class="trust-row">
-    <div class="trust-item">SSL Encrypted</div>
-    <div class="trust-item">IATA Certified</div>
-    <div class="trust-item">24/7 Live Support</div>
-  </div>
 </footer>
 
-<!-- ─── FLOATING MESSAGE BUTTON ─── -->
-<a class="float-msg-btn" id="floatMsgBtn" href="messages.html" style="position:fixed;display:none">
-  <span class="fmb-pulse"></span>
-  <span class="fmb-icon">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-    </svg>
-  </span>
-  Message Support
-</a>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
-// ── SUPABASE CONFIG ──────────────────────────────────────────────────────────
-const SUPABASE_URL  = 'https://azxbtwklromrnmyutmoz.supabase.co';
-const SUPABASE_ANON = 'sb_publishable_MaHxITBZRvjweKDwS4cr8g__A6jZI0k';
-const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-
-// ── REALTIME STATE ───────────────────────────────────────────────────────────
-let _realtimeChannel = null;
-let _fallbackPoll    = null;
-let _currentRaw      = null;
-
-// ── AUTO-FILL FROM URL PARAM ─────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', () => {
-  const params = new URLSearchParams(window.location.search);
-  const code = params.get('code');
-  if (code) {
-    document.getElementById('trackInput').value = code.toUpperCase();
-    doTrack();
+function formatTrackInput(el) {
+  let val = el.value.toUpperCase().replace(/[^A-Z0-9\-]/g, '');
+  if (val === 'GSS') val = 'GSS-';
+  if (val.startsWith('GSS-')) {
+    val = 'GSS-' + val.slice(4).replace(/[^0-9]/g, '');
   }
-});
-
-// ── CLEANUP live subscriptions ───────────────────────────────────────────────
-function stopLive() {
-  if (_realtimeChannel) {
-    _supabase.removeChannel(_realtimeChannel);
-    _realtimeChannel = null;
-  }
-  if (_fallbackPoll) {
-    clearInterval(_fallbackPoll);
-    _fallbackPoll = null;
-  }
-  document.getElementById('liveBadge').classList.remove('active');
+  el.value = val;
 }
 
-// ── START Realtime + fallback poll ───────────────────────────────────────────
-function startLive(raw) {
-  stopLive();
-  _currentRaw = raw;
-
-  // ── Supabase Realtime: subscribe to row changes for this tracking code ──
-  _realtimeChannel = _supabase
-    .channel('track-' + raw)
-    .on(
-      'postgres_changes',
-      {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'bookings',
-        filter: `track_code=eq.${raw}`
-      },
-      (payload) => {
-        if (payload.new) {
-          populateResult(payload.new);
-          flashCard();
-        }
-      }
-    )
-    .subscribe((status) => {
-      const badge = document.getElementById('liveBadge');
-      if (status === 'SUBSCRIBED') {
-        badge.classList.add('active');
-      } else {
-        badge.classList.remove('active');
-      }
-    });
-
-  // ── Fallback poll every 30s in case Realtime drops ──────────────────────
-  _fallbackPoll = setInterval(async () => {
-    const { data: fresh, error } = await _supabase
-      .from('bookings')
-      .select('*')
-      .eq('track_code', raw)
-      .single();
-    if (!error && fresh) populateResult(fresh);
-  }, 30000);
+function showError(msg) {
+  const el = document.getElementById('errorBox');
+  el.innerHTML = '⚠ ' + msg;
+  el.style.display = 'block';
 }
 
-// ── Flash the result card border on live update ──────────────────────────────
-function flashCard() {
-  const card = document.getElementById('resultCard');
-  card.classList.remove('update-flash');
-  // Force reflow so animation re-triggers
-  void card.offsetWidth;
-  card.classList.add('update-flash');
-}
-
-// ── TRACK ────────────────────────────────────────────────────────────────────
-async function doTrack() {
-  stopLive();
-  const raw    = document.getElementById('trackInput').value.trim().toUpperCase();
-  const errBox  = document.getElementById('errorBox');
-  const loading = document.getElementById('loadingBox');
-  const result  = document.getElementById('resultCard');
-
-  errBox.style.display  = 'none';
-  result.style.display  = 'none';
-  loading.style.display = 'none';
+function goTrack() {
+  const raw = document.getElementById('trackInput').value.trim().toUpperCase();
+  document.getElementById('errorBox').style.display = 'none';
 
   if (!raw) {
     showError('Please enter a tracking code.');
@@ -770,202 +324,8 @@ async function doTrack() {
     return;
   }
 
-  loading.style.display = 'flex';
-  document.getElementById('trackBtn').disabled = true;
-
-  try {
-    const { data, error } = await _supabase
-      .from('bookings')
-      .select('*')
-      .eq('track_code', raw)
-      .single();
-
-    loading.style.display = 'none';
-    document.getElementById('trackBtn').disabled = false;
-
-    if (error || !data) {
-      showError('No shipment found for <strong>' + raw + '</strong>. Please check the code and try again.');
-      return;
-    }
-
-    populateResult(data);
-    result.style.display = 'block';
-    result.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-    // Start Realtime subscription for instant admin-driven updates
-    startLive(raw);
-
-  } catch (err) {
-    loading.style.display = 'none';
-    document.getElementById('trackBtn').disabled = false;
-    showError('An error occurred. Please try again.');
-    console.error(err);
-  }
-}
-
-// ── POPULATE ─────────────────────────────────────────────────────────────────
-function populateResult(d) {
-  // Save tracking code so message.html can pick it up without re-entry
-  if (d.track_code) {
-    localStorage.setItem('gss_track_code', d.track_code);
-    // Update the message button link to carry the code as well
-    const btn = document.getElementById('floatMsgBtn');
-    btn.href = 'messages.html?code=' + encodeURIComponent(d.track_code);
-    btn.style.display = 'flex';
-  }
-
-  // Header
-  document.getElementById('rTrackCode').textContent = d.track_code || '—';
-
-  // Status pill
-  const pill = document.getElementById('statusPill');
-  const statusText = document.getElementById('statusText');
-  const rawStatus = (d.status || 'pending').toLowerCase();
-
-  pill.className = 'status-pill';
-  if (rawStatus === 'verified') {
-    pill.classList.add('verified');
-    statusText.textContent = '✓ Verified';
-  } else if (rawStatus === 'in_transit') {
-    pill.classList.add('in_transit');
-    statusText.textContent = '✈ In Transit';
-  } else if (rawStatus === 'arrived') {
-    pill.classList.add('in_transit'); // reuse blue style
-    statusText.textContent = '🛬 At Airport Hub';
-  } else if (rawStatus === 'delivered') {
-    pill.classList.add('verified'); // reuse green style
-    statusText.textContent = '🎉 Delivered';
-  } else {
-    pill.classList.add('pending');
-    statusText.textContent = '⏳ Pending Verification';
-  }
-
-  // Details
-  document.getElementById('rFullName').textContent      = d.full_name      || '—';
-  document.getElementById('rSenderName').textContent    = d.sender_name    || '—';
-  document.getElementById('rPhone').textContent         = d.phone          || '—';
-  document.getElementById('rEmail').textContent         = d.email          || '—';
-  document.getElementById('rPackageNumber').textContent = d.package_number || '—';
-  document.getElementById('rCountry').textContent       = d.country        || '—';
-  document.getElementById('rAirport').textContent       = d.airport        || '—';
-  document.getElementById('rAddress').textContent       = d.address        || '—';
-  document.getElementById('rFee').textContent           = d.fee            || '—';
-
-  // Date
-  if (d.created_at) {
-    const dt = new Date(d.created_at);
-    document.getElementById('rDate').textContent = dt.toLocaleDateString('en-US', {
-      year: 'numeric', month: 'long', day: 'numeric'
-    });
-  } else {
-    document.getElementById('rDate').textContent = '—';
-  }
-
-  // Timeline
-  buildTimeline(d);
-}
-
-// ── TIMELINE ─────────────────────────────────────────────────────────────────
-function buildTimeline(d) {
-  const status = (d.status || 'pending').toLowerCase();
-  const bookedDate = d.created_at ? new Date(d.created_at).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : '';
-  const airport = d.airport ? d.airport.split('—')[0].trim() : 'Airport';
-  const country = d.country || 'destination';
-
-  const steps = [
-    {
-      icon: '📋',
-      title: 'Booking Confirmed',
-      desc: `Shipment booked by ${d.sender_name || 'sender'}. Package code: ${d.package_number || '—'}`,
-      time: bookedDate,
-      state: 'done',
-      here: false
-    },
-    {
-      icon: '✅',
-      title: 'Identity Verified',
-      desc: `Recipient email verified. Booking assigned tracking code ${d.track_code}.`,
-      time: bookedDate,
-      state: (status === 'verified' || status === 'in_transit' || status === 'arrived' || status === 'delivered') ? 'done' : (status === 'pending_verification' ? 'active' : 'pending'),
-      here: status === 'verified' || status === 'pending_verification'
-    },
-    {
-      icon: '✈️',
-      title: 'Package In Transit',
-      desc: `Package en route to ${airport} hub in ${country}.`,
-      time: status === 'in_transit' ? 'In progress' : (status === 'arrived' || status === 'delivered' ? 'Completed' : 'Awaiting'),
-      state: status === 'in_transit' ? 'active' : (status === 'arrived' || status === 'delivered' ? 'done' : 'pending'),
-      here: status === 'in_transit'
-    },
-    {
-      icon: '🛬',
-      title: 'Arrived at Airport Hub',
-      desc: `Package arrived at ${airport}. Delivery fee of ${d.fee || '—'} now due. You will be contacted at ${d.email || 'your email'}.`,
-      time: status === 'arrived' ? 'In progress' : (status === 'delivered' ? 'Completed' : 'Pending'),
-      state: status === 'arrived' ? 'active' : (status === 'delivered' ? 'done' : 'pending'),
-      here: status === 'arrived'
-    },
-    {
-      icon: '🏠',
-      title: 'Out for Delivery',
-      desc: `Package dispatched to ${d.address || 'your address'}.`,
-      time: status === 'delivered' ? 'Completed' : 'Pending',
-      state: status === 'delivered' ? 'done' : 'pending',
-      here: false
-    },
-    {
-      icon: '🎉',
-      title: 'Delivered',
-      desc: 'Package successfully delivered to recipient.',
-      time: status === 'delivered' ? 'Completed' : 'Pending',
-      state: status === 'delivered' ? 'done' : 'pending',
-      here: status === 'delivered'
-    }
-  ];
-
-  const tl = document.getElementById('timeline');
-  tl.innerHTML = '';
-
-  steps.forEach((s, i) => {
-    const li = document.createElement('li');
-    li.className = 'tl-item';
-    const lineClass = (s.state === 'done') ? 'tl-line done' : 'tl-line';
-    const hereBadge = s.here ? `<span class="here-dot">Package Here</span>` : '';
-    li.innerHTML = `
-      <div class="tl-dot-wrap">
-        <div class="tl-dot ${s.state}">${s.icon}</div>
-        ${i < steps.length - 1 ? `<div class="${lineClass}"></div>` : ''}
-      </div>
-      <div class="tl-content">
-        <div class="tl-title-row">
-          <div class="tl-title">${s.title}</div>
-          ${hereBadge}
-        </div>
-        <div class="tl-desc">${s.desc}</div>
-        <div class="tl-time">${s.time}</div>
-      </div>
-    `;
-    tl.appendChild(li);
-  });
-}
-
-// ── FORMAT TRACK INPUT ───────────────────────────────────────────────────────
-function formatTrackInput(el) {
-  let val = el.value.toUpperCase().replace(/[^A-Z0-9\-]/g, '');
-  // Auto-insert hyphen once user has typed "GSS"
-  if (val === 'GSS') val = 'GSS-';
-  // Prevent duplicate hyphens / enforce GSS- prefix
-  if (val.startsWith('GSS-')) {
-    val = 'GSS-' + val.slice(4).replace(/[^0-9]/g, '');
-  }
-  el.value = val;
-}
-
-
-function showError(msg) {
-  const el = document.getElementById('errorBox');
-  el.innerHTML = '⚠ ' + msg;
-  el.style.display = 'block';
+  // Navigate to track.html with the code as a URL parameter
+  window.location.href = 'track.html?code=' + encodeURIComponent(raw);
 }
 </script>
 
