@@ -461,82 +461,57 @@ const SUPABASE_ANON = 'sb_publishable_MaHxITBZRvjweKDwS4cr8g__A6jZI0k';
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
-let SESSION_ID   = localStorage.getItem('gss_session_id') || null;
+// TRACK_CODE is the user's unique identifier — used to scope all DB reads/writes
+// to only rows where track_code = TRACK_CODE. Users cannot read other sessions.
+let TRACK_CODE   = null;
 let SENDER_NAME  = localStorage.getItem('gss_sender_name') || null;
 let _channel     = null;
+// Local cache of message rows (from `messages` table) belonging to this user
+let _localMsgs   = [];
 
 // ── BOOT ──────────────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
-  // Pull tracking code from URL param or localStorage (written by track.html)
   const params        = new URLSearchParams(window.location.search);
   const codeFromUrl   = params.get('code');
   const codeFromStore = localStorage.getItem('gss_track_code');
-  const trackingCode  = (codeFromUrl || codeFromStore || '').toUpperCase().trim();
+  TRACK_CODE = (codeFromUrl || codeFromStore || '').toUpperCase().trim() || null;
 
-  // Always use the tracking code as the sender name when available
-  if (trackingCode) {
-    SENDER_NAME = trackingCode;
+  if (TRACK_CODE) {
+    SENDER_NAME = TRACK_CODE;
     localStorage.setItem('gss_sender_name', SENDER_NAME);
-  }
-
-  // Create a session tied to this tracking code if none exists yet
-  if (!SESSION_ID) {
-    const base = trackingCode || ('anon_' + Math.random().toString(36).slice(2, 8));
-    SESSION_ID = 'sess_' + base + '_' + Date.now();
-    localStorage.setItem('gss_session_id', SESSION_ID);
+  } else {
+    // Generate an anonymous identifier if no tracking code is available
+    TRACK_CODE = localStorage.getItem('gss_anon_id') || ('ANON-' + Math.random().toString(36).slice(2, 10).toUpperCase());
+    localStorage.setItem('gss_anon_id', TRACK_CODE);
+    SENDER_NAME = SENDER_NAME || TRACK_CODE;
   }
 
   loadMessages();
   subscribeRealtime();
 });
 
-// ── START CHAT (kept for fallback — no longer called automatically) ────────────
-function startChat() {
-  loadMessages();
-  subscribeRealtime();
-}
-
-// ── SHOW CHAT UI ──────────────────────────────────────────────────────────────
-function showChat() {
-  // No-op: chat area is always visible now
-}
-
-// ── LOAD HISTORY + AUTO-GREETING ─────────────────────────────────────────────
+// ── LOAD HISTORY ─────────────────────────────────────────────────────────────
+// Users can ONLY read rows where track_code equals their own TRACK_CODE.
 async function loadMessages() {
   try {
     const { data, error } = await _supabase
-      .from('support_messages')
-      .select('*')
-      .eq('session_id', SESSION_ID)
+      .from('messages')
+      .select('id, name, track_code, message, reply, replied_at, created_at')
+      .eq('track_code', TRACK_CODE)   // ← scope: own ID only
       .order('created_at', { ascending: true });
 
     document.getElementById('chatLoading')?.remove();
-
     if (error) throw error;
 
-    if (!data || data.length === 0) {
-      // First ever open — insert the greeting into Supabase so admin sees it
-      const greetingContent =
-        `👋 Hello! Welcome to Global Sky Shipment support.\n` +
-        `We have received your enquiry for tracking code ${SENDER_NAME || 'your shipment'}.\n` +
-        `Our team is reviewing your case and will reply shortly. ` +
-        `You can reach us directly at globalskyshipment247@gmail.com.`;
+    _localMsgs = data || [];
 
-      const greetingRow = {
-        session_id:  SESSION_ID,
-        sender_name: 'Global Sky Support',
-        sender:      'admin',
-        content:     greetingContent,
-        created_at:  new Date().toISOString()
-      };
-
-      // Insert into Supabase (best-effort; show locally either way)
-      await _supabase.from('support_messages').insert([greetingRow]);
-
+    if (_localMsgs.length === 0) {
+      // No messages yet — show a local welcome note (not stored)
       appendSystemMsg('Chat started — our team will reply shortly.');
-      renderBubble({ ...greetingRow, id: 'greeting_local' }, true);
+      renderWelcomeBubble();
     } else {
-      data.forEach(msg => renderBubble(msg, false));
+      // Render each message row as a user bubble + optional admin reply bubble
+      _localMsgs.forEach(row => renderRowBubbles(row, false));
       scrollBottom();
     }
   } catch (err) {
@@ -547,91 +522,117 @@ async function loadMessages() {
 }
 
 // ── REALTIME SUBSCRIPTION ─────────────────────────────────────────────────────
+// Subscribe to INSERT and UPDATE events on `messages`, filtered to own track_code.
+// This lets the user see admin replies in real time without polling.
 function subscribeRealtime() {
   if (_channel) _supabase.removeChannel(_channel);
 
   _channel = _supabase
-    .channel('messages-' + SESSION_ID)
+    .channel('user-messages-' + TRACK_CODE)
     .on(
       'postgres_changes',
       {
         event: 'INSERT',
         schema: 'public',
-        table: 'support_messages',
-        filter: `session_id=eq.${SESSION_ID}`
+        table: 'messages',
+        filter: `track_code=eq.${TRACK_CODE}`   // ← scope: own ID only
       },
       (payload) => {
-        if (payload.new) {
-          // Avoid duplicate rendering of messages we just sent
-          const existing = document.querySelector(`[data-msg-id="${payload.new.id}"]`);
-          if (!existing) {
-            renderBubble(payload.new, true);
-          }
+        if (!payload.new) return;
+        const existing = _localMsgs.find(m => m.id === payload.new.id);
+        if (!existing) {
+          _localMsgs.push(payload.new);
+          renderRowBubbles(payload.new, true);
         }
+      }
+    )
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'messages',
+        filter: `track_code=eq.${TRACK_CODE}`   // ← scope: own ID only
+      },
+      (payload) => {
+        if (!payload.new) return;
+        const idx = _localMsgs.findIndex(m => m.id === payload.new.id);
+        if (idx !== -1) {
+          _localMsgs[idx] = payload.new;
+        } else {
+          _localMsgs.push(payload.new);
+        }
+        // Re-render this specific row's reply bubble
+        refreshReplyBubble(payload.new);
       }
     )
     .subscribe();
 }
 
 // ── SEND MESSAGE ─────────────────────────────────────────────────────────────
+// Writes a new row to `messages` with track_code = TRACK_CODE.
+// The admin panel will see this row and can reply via the `reply` field.
 async function sendMessage() {
   const input = document.getElementById('msgInput');
   const text  = input.value.trim();
   if (!text) return;
 
   const btn = document.getElementById('sendBtn');
-  btn.disabled = true;
-  input.value  = '';
+  btn.disabled      = true;
+  input.value       = '';
   input.style.height = '';
 
-  const msgObj = {
-    session_id:   SESSION_ID,
-    sender_name:  SENDER_NAME,
-    sender:       'user',
-    content:      text,
-    created_at:   new Date().toISOString()
+  const newRow = {
+    name:       SENDER_NAME,
+    track_code: TRACK_CODE,
+    message:    text,
+    read:       false,
+    created_at: new Date().toISOString()
   };
 
-  // Optimistic UI — render immediately
-  renderBubble({ ...msgObj, id: 'pending_' + Date.now() }, true);
+  // Optimistic UI — show user bubble immediately
+  const tempId = 'pending_' + Date.now();
+  renderUserBubble({ ...newRow, id: tempId }, true);
 
   try {
-    const { error } = await _supabase
-      .from('support_messages')
-      .insert([msgObj]);
+    const { data, error } = await _supabase
+      .from('messages')
+      .insert([newRow])
+      .select('id, name, track_code, message, reply, replied_at, created_at')
+      .single();
 
-    if (error) {
-      console.error('Send error:', error);
-      appendSystemMsg('⚠ Message failed to send. Please try again.');
-    }
+    if (error) throw error;
+
+    // Replace temp entry with real DB row
+    const tempEl = document.querySelector(`[data-msg-id="${tempId}"]`);
+    if (tempEl && data?.id) tempEl.dataset.msgId = data.id;
+
+    _localMsgs.push(data);
   } catch (err) {
-    console.error(err);
-    appendSystemMsg('⚠ Network error. Please try again.');
+    console.error('Send error:', err);
+    appendSystemMsg('⚠ Message failed to send. Please try again.');
   } finally {
     btn.disabled = false;
     input.focus();
   }
 }
 
-// ── RENDER BUBBLE ─────────────────────────────────────────────────────────────
-function renderBubble(msg, doScroll) {
-  const area = document.getElementById('messagesArea');
-  const isUser = msg.sender === 'user';
+// ── RENDER ROW (user message + admin reply if present) ───────────────────────
+function renderRowBubbles(row, doScroll) {
+  renderUserBubble(row, false);
+  if (row.reply) {
+    renderAdminBubble(row, false);
+  }
+  if (doScroll) scrollBottom();
+}
 
-  const row = document.createElement('div');
-  row.className = `bubble-row ${isUser ? 'user' : 'admin'}`;
-  if (msg.id) row.dataset.msgId = msg.id;
-
-  const initials = isUser
-    ? (SENDER_NAME || 'U').slice(0, 1).toUpperCase()
-    : 'GS';
-
-  const timeStr = formatTime(msg.created_at);
-  const content = msg.content || '';
-  // [image-path] = private bucket path (no public URL).
-  // Users only see a "Photo sent" placeholder — the actual image is private
-  // and can only be viewed by admin.html via a server-side signed URL.
-  const isImage = content.startsWith('[image-path]') || content.startsWith('[image]');
+// Render the user's outgoing message bubble
+function renderUserBubble(row, doScroll) {
+  const area     = document.getElementById('messagesArea');
+  const initials = (SENDER_NAME || 'U').slice(0, 1).toUpperCase();
+  const timeStr  = formatTime(row.created_at);
+  const content  = row.message || '';
+  const isImage  = content.startsWith('[image-path]') || content.startsWith('[image]');
   const bodyHtml = isImage
     ? `<div style="display:flex;align-items:center;gap:0.5rem;padding:0.25rem 0;color:rgba(255,255,255,0.7);font-size:0.8rem">
          <span style="font-size:1.2rem">📷</span>
@@ -639,23 +640,79 @@ function renderBubble(msg, doScroll) {
        </div>`
     : escapeHtml(content);
 
-  row.innerHTML = `
-    <div class="bubble-avatar ${isUser ? 'user-av' : 'admin-av'}">${initials}</div>
+  const row_el = document.createElement('div');
+  row_el.className = 'bubble-row user';
+  if (row.id) row_el.dataset.msgId = row.id;
+  row_el.innerHTML = `
+    <div class="bubble-avatar user-av">${initials}</div>
     <div class="bubble">
       ${bodyHtml}
       <span class="bubble-time">${timeStr}</span>
-    </div>
-  `;
-
-  area.appendChild(row);
+    </div>`;
+  area.appendChild(row_el);
   if (doScroll) scrollBottom();
+}
+
+// Render admin's reply bubble for a given row
+function renderAdminBubble(row, doScroll) {
+  const area    = document.getElementById('messagesArea');
+  const timeStr = formatTime(row.replied_at || row.created_at);
+  const replyEl = document.createElement('div');
+  replyEl.className = 'bubble-row admin';
+  replyEl.dataset.replyFor = row.id;
+  replyEl.innerHTML = `
+    <div class="bubble-avatar admin-av">GS</div>
+    <div class="bubble">
+      ${escapeHtml(row.reply)}
+      <span class="bubble-time">${timeStr}</span>
+    </div>`;
+  area.appendChild(replyEl);
+  if (doScroll) scrollBottom();
+}
+
+// When an UPDATE arrives, add the reply bubble if it doesn't exist yet
+function refreshReplyBubble(row) {
+  if (!row.reply) return;
+  const existing = document.querySelector(`[data-reply-for="${row.id}"]`);
+  if (!existing) {
+    renderAdminBubble(row, true);
+    appendSystemMsg('💬 Support has replied to your message.');
+  } else {
+    // Update text in place in case reply was edited
+    const bubble = existing.querySelector('.bubble');
+    if (bubble) {
+      const timeStr = formatTime(row.replied_at || row.created_at);
+      bubble.innerHTML = `${escapeHtml(row.reply)}<span class="bubble-time">${timeStr}</span>`;
+    }
+  }
+}
+
+// Render a welcome bubble from support (local only, not stored)
+function renderWelcomeBubble() {
+  const area = document.getElementById('messagesArea');
+  const greetingContent =
+    `👋 Hello! Welcome to Global Sky Shipment support.\n` +
+    `We have received your enquiry for tracking code ${SENDER_NAME || 'your shipment'}.\n` +
+    `Our team is reviewing your case and will reply shortly. ` +
+    `You can reach us directly at globalskyshipment247@gmail.com.`;
+
+  const greetEl = document.createElement('div');
+  greetEl.className = 'bubble-row admin';
+  greetEl.innerHTML = `
+    <div class="bubble-avatar admin-av">GS</div>
+    <div class="bubble">
+      ${escapeHtml(greetingContent)}
+      <span class="bubble-time">${formatTime(new Date().toISOString())}</span>
+    </div>`;
+  area.appendChild(greetEl);
+  scrollBottom();
 }
 
 // ── SYSTEM MSG ────────────────────────────────────────────────────────────────
 function appendSystemMsg(text) {
   const area = document.getElementById('messagesArea');
-  const el = document.createElement('div');
-  el.className = 'sys-msg';
+  const el   = document.createElement('div');
+  el.className   = 'sys-msg';
   el.textContent = text;
   area.appendChild(el);
   scrollBottom();
@@ -674,7 +731,7 @@ function formatTime(iso) {
 }
 
 function escapeHtml(str) {
-  return str
+  return String(str)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
     .replace(/\n/g, '<br>');
@@ -695,10 +752,9 @@ function handleKey(e) {
 // ── PHOTO UPLOAD ──────────────────────────────────────────────────────────────
 async function handlePhotoSelect(event) {
   const file = event.target.files[0];
-  event.target.value = ''; // reset so same file can be re-selected
+  event.target.value = '';
   if (!file) return;
 
-  // 10 MB limit
   if (file.size > 10 * 1024 * 1024) {
     appendSystemMsg('⚠ Photo too large. Max size is 10 MB.');
     return;
@@ -713,44 +769,38 @@ async function handlePhotoSelect(event) {
   progress.classList.add('show');
 
   try {
-    // Upload to Supabase Storage
     const ext      = file.name.split('.').pop() || 'jpg';
-    const fileName = `${SESSION_ID}_${Date.now()}.${ext}`;
-    const { data: uploadData, error: uploadError } = await _supabase
+    const fileName = `${TRACK_CODE}_${Date.now()}.${ext}`;
+    const { error: uploadError } = await _supabase
       .storage
       .from('chat-images')
       .upload(fileName, file, { contentType: file.type, upsert: false });
 
     if (uploadError) throw uploadError;
 
-    // ── PRIVATE BUCKET: store only the file path, NOT a public URL ──
-    // Only admin.html (which creates a fresh signed URL server-side) can view the image.
-    // Users in message.html cannot retrieve the image of another session because
-    // (a) the bucket has no public access, and
-    // (b) createSignedUrl is called with the session's own fileName only during upload.
-    // The stored content is the storage path, prefixed with [image-path] so the
-    // admin panel knows to request a signed URL before rendering.
-    const storagePath = fileName; // e.g. "sess_GSS-123_1234567890.jpg"
-
-    // Send as a message with [image-path] prefix (path only, no public URL)
-    const msgObj = {
-      session_id:  SESSION_ID,
-      sender_name: SENDER_NAME,
-      sender:      'user',
-      content:     '[image-path]' + storagePath,
-      created_at:  new Date().toISOString()
+    // Store only the path (private bucket) — admin creates a signed URL to view it
+    const newRow = {
+      name:       SENDER_NAME,
+      track_code: TRACK_CODE,
+      message:    '[image-path]' + fileName,
+      read:       false,
+      created_at: new Date().toISOString()
     };
 
-    renderBubble({ ...msgObj, id: 'pending_img_' + Date.now() }, true);
+    const tempId = 'pending_img_' + Date.now();
+    renderUserBubble({ ...newRow, id: tempId }, true);
 
-    const { error: insertError } = await _supabase
-      .from('support_messages')
-      .insert([msgObj]);
+    const { data, error: insertError } = await _supabase
+      .from('messages')
+      .insert([newRow])
+      .select('id, name, track_code, message, reply, replied_at, created_at')
+      .single();
 
-    if (insertError) {
-      console.error('Insert error:', insertError);
-      appendSystemMsg('⚠ Photo sent but failed to save. Please try again.');
-    }
+    if (insertError) throw insertError;
+
+    const tempEl = document.querySelector(`[data-msg-id="${tempId}"]`);
+    if (tempEl && data?.id) tempEl.dataset.msgId = data.id;
+    _localMsgs.push(data);
   } catch (err) {
     console.error('Photo upload error:', err);
     appendSystemMsg('⚠ Failed to upload photo. Please try again.');
