@@ -432,7 +432,7 @@
 <!-- ─── HEADER ─── -->
 <header>
   <div class="header-left">
-    <a class="back-btn" href="javascript:void(0)" onclick="goBackToTracking()">
+    <a class="back-btn" href="javascript:void(0)" onclick="deleteAndGoBack()">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
         <path d="M19 12H5M12 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
@@ -540,13 +540,9 @@ window.addEventListener('DOMContentLoaded', () => {
   subscribeRealtime();
   subscribeGlobalTyping();
 
-  // Clear messages from DB and DOM when the tab/app is closed
+  // Wipe local state on close (DB is cleared when user clicks Back)
   window.addEventListener('beforeunload', () => {
-    // Delete all messages for this track_code from Supabase
-    _supabase.from('messages').delete().eq('track_code', TRACK_CODE);
     _localMsgs = [];
-    const area = document.getElementById('messagesArea');
-    if (area) area.innerHTML = '';
   });
 });
 
@@ -994,15 +990,19 @@ function escapeAttr(str) {
   return str.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-// ── BACK NAVIGATION ──────────────────────────────────────────────────────────
-// Always goes back to the tracking page, never to a user details page.
-function goBackToTracking() {
-  // If there's a track code, go to track.html with it so user sees their shipment
-  if (TRACK_CODE && !TRACK_CODE.startsWith('ANON-')) {
-    window.location.href = 'track.html?code=' + encodeURIComponent(TRACK_CODE);
-  } else {
-    window.location.href = 'track.html';
+// ── BACK / DELETE ────────────────────────────────────────────────────────────
+// Deletes all messages for this user from the DB, clears the DOM, then navigates back.
+async function deleteAndGoBack() {
+  if (TRACK_CODE) {
+    try { await _supabase.from('messages').delete().eq('track_code', TRACK_CODE); } catch(_) {}
   }
+  _localMsgs = [];
+  const area = document.getElementById('messagesArea');
+  if (area) area.innerHTML = '';
+  // Navigate back to tracking page
+  window.location.href = TRACK_CODE
+    ? 'track.html?code=' + encodeURIComponent(TRACK_CODE)
+    : 'track.html';
 }
 </script>
 </body>
