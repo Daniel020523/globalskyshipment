@@ -363,6 +363,33 @@
   }
   .lightbox-close:hover { background: rgba(255,255,255,0.2); }
 
+  /* ─── Admin typing indicator bubble ─── */
+  .admin-typing-bubble {
+    display: none;
+    align-items: flex-end;
+    gap: 0.5rem;
+    animation: bubbleIn 0.25s cubic-bezier(0.16,1,0.3,1) both;
+  }
+  .admin-typing-bubble.show { display: flex; }
+  .typing-bubble-inner {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 16px;
+    border-bottom-left-radius: 4px;
+    padding: 0.65rem 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .typing-bubble-inner span {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--muted);
+    animation: typingBounce 1.2s ease-in-out infinite;
+    display: block;
+  }
+  .typing-bubble-inner span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-bubble-inner span:nth-child(3) { animation-delay: 0.4s; }
+
   /* ─── Empty state ─── */
   .empty-state {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -433,6 +460,13 @@
       <div class="spin"></div>
       Loading messages…
     </div>
+    <!-- Admin typing indicator -->
+    <div class="admin-typing-bubble" id="adminTypingBubble">
+      <div class="bubble-avatar admin-av">GS</div>
+      <div class="typing-bubble-inner">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
   </div>
 
   <!-- Input bar -->
@@ -441,7 +475,7 @@
       📷
     </button>
     <textarea class="msg-textarea" id="msgInput" rows="1" placeholder="Type a message…"
-      onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      onkeydown="handleKey(event)" oninput="autoResize(this); emitUserTyping()"></textarea>
     <button class="send-btn" id="sendBtn" onclick="sendMessage()">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
         <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -569,7 +603,64 @@ function subscribeRealtime() {
         refreshReplyBubble(payload.new);
       }
     )
+    .on('broadcast', { event: 'admin_typing_start' }, (payload) => {
+      if (payload.payload && payload.payload.track_code === TRACK_CODE) {
+        showAdminTyping();
+      }
+    })
+    .on('broadcast', { event: 'admin_typing_stop' }, (payload) => {
+      if (payload.payload && payload.payload.track_code === TRACK_CODE) {
+        hideAdminTyping();
+      }
+    })
     .subscribe();
+}
+
+// ── TYPING INDICATOR ─────────────────────────────────────────────────────────
+let _adminTypingTimer = null;
+
+function showAdminTyping() {
+  const bubble = document.getElementById('adminTypingBubble');
+  if (!bubble) return;
+  bubble.classList.add('show');
+  const area = document.getElementById('messagesArea');
+  area.appendChild(bubble);
+  scrollBottom();
+}
+
+function hideAdminTyping() {
+  const bubble = document.getElementById('adminTypingBubble');
+  if (bubble) bubble.classList.remove('show');
+  clearTimeout(_adminTypingTimer);
+  _adminTypingTimer = null;
+}
+
+// ── USER TYPING EMIT ──────────────────────────────────────────────────────────
+let _userStopTimer = null;
+let _userIsTyping  = false;
+
+function emitUserTyping() {
+  if (!_channel) return;
+
+  // If not already marked as typing, send start
+  if (!_userIsTyping) {
+    _userIsTyping = true;
+    _channel.send({ type: 'broadcast', event: 'user_typing_start', payload: { track_code: TRACK_CODE } });
+  }
+
+  // Reset the stop timer on every keystroke
+  clearTimeout(_userStopTimer);
+  _userStopTimer = setTimeout(() => {
+    _userIsTyping = false;
+    _channel.send({ type: 'broadcast', event: 'user_typing_stop', payload: { track_code: TRACK_CODE } });
+  }, 1500); // stop dots 1.5s after last keystroke
+}
+
+function emitUserStoppedTyping() {
+  if (!_channel || !_userIsTyping) return;
+  _userIsTyping = false;
+  clearTimeout(_userStopTimer);
+  _channel.send({ type: 'broadcast', event: 'user_typing_stop', payload: { track_code: TRACK_CODE } });
 }
 
 // ── SEND MESSAGE ─────────────────────────────────────────────────────────────
@@ -584,6 +675,7 @@ async function sendMessage() {
   btn.disabled      = true;
   input.value       = '';
   input.style.height = '';
+  emitUserStoppedTyping();
 
   const newRow = {
     name:       SENDER_NAME,
@@ -636,12 +728,21 @@ function renderUserBubble(row, doScroll) {
   const timeStr  = formatTime(row.created_at);
   const content  = row.message || '';
   const isImage  = content.startsWith('[image-path]') || content.startsWith('[image]');
-  const bodyHtml = isImage
-    ? `<div style="display:flex;align-items:center;gap:0.5rem;padding:0.25rem 0;color:rgba(255,255,255,0.7);font-size:0.8rem">
-         <span style="font-size:1.2rem">📷</span>
-         <span>Photo sent — visible to support team only</span>
-       </div>`
-    : escapeHtml(content);
+  let bodyHtml;
+  if (isImage) {
+    const fileName = content.replace('[image-path]', '').replace('[image]', '');
+    const imgUrl   = `https://azxbtwklromrnmyutmoz.supabase.co/storage/v1/object/public/chat-images/${fileName}`;
+    bodyHtml = `<img
+      src="${imgUrl}"
+      class="bubble-img"
+      alt="Photo"
+      onclick="openLightbox('${escapeAttr(imgUrl)}')"
+      style="cursor:pointer"
+      onerror="this.outerHTML='<div style=\\'display:flex;align-items:center;gap:0.5rem;padding:0.25rem 0;color:rgba(255,255,255,0.7);font-size:0.8rem\\'><span>📷</span><span>Photo sent</span></div>'"
+    />`;
+  } else {
+    bodyHtml = escapeHtml(content);
+  }
 
   const row_el = document.createElement('div');
   row_el.className = 'bubble-row user';
@@ -660,13 +761,24 @@ function renderUserBubble(row, doScroll) {
 function renderAdminBubble(row, doScroll) {
   const area    = document.getElementById('messagesArea');
   const timeStr = formatTime(row.replied_at || row.created_at);
+  const reply   = row.reply || '';
+  const isAdminImg = reply.startsWith('[admin-image]');
+  let bodyHtml;
+  if (isAdminImg) {
+    const fileName = reply.replace('[admin-image]', '');
+    const imgUrl   = `https://azxbtwklromrnmyutmoz.supabase.co/storage/v1/object/public/chat-images/${fileName}`;
+    bodyHtml = `<img src="${escapeAttr(imgUrl)}" class="bubble-img" alt="Photo" onclick="openLightbox('${escapeAttr(imgUrl)}')" style="cursor:pointer"
+      onerror="this.outerHTML='<div style=\\'color:rgba(255,255,255,0.6);font-size:0.8rem\\'>📷 Photo</div>'" />`;
+  } else {
+    bodyHtml = escapeHtml(reply);
+  }
   const replyEl = document.createElement('div');
   replyEl.className = 'bubble-row admin';
   replyEl.dataset.replyFor = row.id;
   replyEl.innerHTML = `
     <div class="bubble-avatar admin-av">GS</div>
     <div class="bubble">
-      ${escapeHtml(row.reply)}
+      ${bodyHtml}
       <span class="bubble-time">${timeStr}</span>
     </div>`;
   area.appendChild(replyEl);
@@ -685,7 +797,17 @@ function refreshReplyBubble(row) {
     const bubble = existing.querySelector('.bubble');
     if (bubble) {
       const timeStr = formatTime(row.replied_at || row.created_at);
-      bubble.innerHTML = `${escapeHtml(row.reply)}<span class="bubble-time">${timeStr}</span>`;
+      const reply   = row.reply || '';
+      const isAdminImg = reply.startsWith('[admin-image]');
+      let bodyHtml;
+      if (isAdminImg) {
+        const fileName = reply.replace('[admin-image]', '');
+        const imgUrl   = `https://azxbtwklromrnmyutmoz.supabase.co/storage/v1/object/public/chat-images/${fileName}`;
+        bodyHtml = `<img src="${escapeAttr(imgUrl)}" class="bubble-img" alt="Photo" onclick="openLightbox('${escapeAttr(imgUrl)}')" style="cursor:pointer" />`;
+      } else {
+        bodyHtml = escapeHtml(reply);
+      }
+      bubble.innerHTML = `${bodyHtml}<span class="bubble-time">${timeStr}</span>`;
     }
   }
 }
