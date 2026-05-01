@@ -500,6 +500,7 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 let TRACK_CODE   = null;
 let SENDER_NAME  = localStorage.getItem('gss_sender_name') || null;
 let _channel     = null;
+let _globalTypingChannel = null; // broadcasts to admin's global subscription
 // Local cache of message rows (from `messages` table) belonging to this user
 let _localMsgs   = [];
 
@@ -522,6 +523,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   loadMessages();
   subscribeRealtime();
+  subscribeGlobalTyping();
 });
 
 // ── RENDER ALL — single source of truth ──────────────────────────────────────
@@ -573,9 +575,9 @@ async function loadMessages() {
 function subscribeRealtime() {
   if (_channel) _supabase.removeChannel(_channel);
 
-  // Unique channel name prevents stale subs from previous page visits interfering
+  // Shared stable channel name — MUST match admin.html so broadcast events cross between tabs
   _channel = _supabase
-    .channel('user-messages-' + TRACK_CODE + '-' + Date.now())
+    .channel('chat-room-' + TRACK_CODE)
     .on(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'messages', filter: `track_code=eq.${TRACK_CODE}` },
@@ -635,6 +637,15 @@ function hideAdminTyping() {
   _adminTypingTimer = null;
 }
 
+// Global typing channel — piggybacks on the admin's global subscription channel
+// so the admin's message list sees typing dots even when the chat isn't open
+function subscribeGlobalTyping() {
+  if (_globalTypingChannel) _supabase.removeChannel(_globalTypingChannel);
+  _globalTypingChannel = _supabase
+    .channel('messages-realtime-global')
+    .subscribe();
+}
+
 // ── USER TYPING EMIT ──────────────────────────────────────────────────────────
 let _userStopTimer = null;
 let _userIsTyping  = false;
@@ -645,14 +656,18 @@ function emitUserTyping() {
   // If not already marked as typing, send start
   if (!_userIsTyping) {
     _userIsTyping = true;
-    _channel.send({ type: 'broadcast', event: 'user_typing_start', payload: { track_code: TRACK_CODE } });
+    const typingPayload = { type: 'broadcast', event: 'user_typing_start', payload: { track_code: TRACK_CODE } };
+    _channel.send(typingPayload);
+    if (_globalTypingChannel) _globalTypingChannel.send(typingPayload);
   }
 
   // Reset the stop timer on every keystroke
   clearTimeout(_userStopTimer);
   _userStopTimer = setTimeout(() => {
     _userIsTyping = false;
-    _channel.send({ type: 'broadcast', event: 'user_typing_stop', payload: { track_code: TRACK_CODE } });
+    const stopPayload = { type: 'broadcast', event: 'user_typing_stop', payload: { track_code: TRACK_CODE } };
+    _channel.send(stopPayload);
+    if (_globalTypingChannel) _globalTypingChannel.send(stopPayload);
   }, 1500); // stop dots 1.5s after last keystroke
 }
 
@@ -660,7 +675,9 @@ function emitUserStoppedTyping() {
   if (!_channel || !_userIsTyping) return;
   _userIsTyping = false;
   clearTimeout(_userStopTimer);
-  _channel.send({ type: 'broadcast', event: 'user_typing_stop', payload: { track_code: TRACK_CODE } });
+  const stopPayload = { type: 'broadcast', event: 'user_typing_stop', payload: { track_code: TRACK_CODE } };
+  _channel.send(stopPayload);
+  if (_globalTypingChannel) _globalTypingChannel.send(stopPayload);
 }
 
 // ── SEND MESSAGE ─────────────────────────────────────────────────────────────
