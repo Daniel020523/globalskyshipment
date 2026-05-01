@@ -490,30 +490,44 @@ window.addEventListener('DOMContentLoaded', () => {
   subscribeRealtime();
 });
 
+// ── RENDER ALL — single source of truth ──────────────────────────────────────
+// Always clears and rebuilds the entire chat area from _localMsgs in order.
+// Call this whenever the full state may have changed (load, reconnect, etc.)
+function rebuildChat() {
+  const area = document.getElementById('messagesArea');
+  if (!area) return;
+  area.innerHTML = '';
+
+  if (_localMsgs.length === 0) {
+    appendSystemMsg('Chat started — our team will reply shortly.');
+    renderWelcomeBubble();
+    return;
+  }
+
+  // Sort by created_at ascending so order is always correct regardless of arrival order
+  const sorted = _localMsgs.slice().sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  sorted.forEach(row => {
+    renderUserBubble(row, false);
+    if (row.reply) renderAdminBubble(row, false);
+  });
+  scrollBottom();
+}
+
 // ── LOAD HISTORY ─────────────────────────────────────────────────────────────
-// Users can ONLY read rows where track_code equals their own TRACK_CODE.
 async function loadMessages() {
   try {
     const { data, error } = await _supabase
       .from('messages')
       .select('id, name, track_code, message, reply, replied_at, created_at')
-      .eq('track_code', TRACK_CODE)   // ← scope: own ID only
+      .eq('track_code', TRACK_CODE)
       .order('created_at', { ascending: true });
 
     document.getElementById('chatLoading')?.remove();
     if (error) throw error;
 
     _localMsgs = data || [];
-
-    if (_localMsgs.length === 0) {
-      // No messages yet — show a local welcome note (not stored)
-      appendSystemMsg('Chat started — our team will reply shortly.');
-      renderWelcomeBubble();
-    } else {
-      // Render each message row as a user bubble + optional admin reply bubble
-      _localMsgs.forEach(row => renderRowBubbles(row, false));
-      scrollBottom();
-    }
+    // Always do a full clean rebuild — never append on top of existing DOM
+    rebuildChat();
   } catch (err) {
     document.getElementById('chatLoading')?.remove();
     appendSystemMsg('Could not load messages. Check your connection.');
@@ -522,47 +536,36 @@ async function loadMessages() {
 }
 
 // ── REALTIME SUBSCRIPTION ─────────────────────────────────────────────────────
-// Subscribe to INSERT and UPDATE events on `messages`, filtered to own track_code.
-// This lets the user see admin replies in real time without polling.
 function subscribeRealtime() {
   if (_channel) _supabase.removeChannel(_channel);
 
+  // Unique channel name prevents stale subs from previous page visits interfering
   _channel = _supabase
-    .channel('user-messages-' + TRACK_CODE)
+    .channel('user-messages-' + TRACK_CODE + '-' + Date.now())
     .on(
       'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'messages',
-        filter: `track_code=eq.${TRACK_CODE}`   // ← scope: own ID only
-      },
+      { event: 'INSERT', schema: 'public', table: 'messages', filter: `track_code=eq.${TRACK_CODE}` },
       (payload) => {
         if (!payload.new) return;
-        const existing = _localMsgs.find(m => m.id === payload.new.id);
-        if (!existing) {
-          _localMsgs.push(payload.new);
-          renderRowBubbles(payload.new, true);
-        }
+        // Skip if already in cache (we sent it — optimistic bubble already in DOM)
+        if (_localMsgs.find(m => m.id === payload.new.id)) return;
+        // Skip if already rendered in DOM (covers temp-id → real-id swap race)
+        if (document.querySelector(`[data-msg-id="${payload.new.id}"]`)) return;
+        _localMsgs.push(payload.new);
+        renderUserBubble(payload.new, false);
+        if (payload.new.reply) renderAdminBubble(payload.new, false);
+        scrollBottom();
       }
     )
     .on(
       'postgres_changes',
-      {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'messages',
-        filter: `track_code=eq.${TRACK_CODE}`   // ← scope: own ID only
-      },
+      { event: 'UPDATE', schema: 'public', table: 'messages', filter: `track_code=eq.${TRACK_CODE}` },
       (payload) => {
         if (!payload.new) return;
         const idx = _localMsgs.findIndex(m => m.id === payload.new.id);
-        if (idx !== -1) {
-          _localMsgs[idx] = payload.new;
-        } else {
-          _localMsgs.push(payload.new);
-        }
-        // Re-render this specific row's reply bubble
+        if (idx !== -1) _localMsgs[idx] = payload.new;
+        else _localMsgs.push(payload.new);
+        // Only touch the reply bubble — never re-render the whole chat from realtime
         refreshReplyBubble(payload.new);
       }
     )
