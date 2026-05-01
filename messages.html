@@ -566,7 +566,10 @@ async function loadMessages() {
     document.getElementById('chatLoading')?.remove();
     if (error) throw error;
 
-    _localMsgs = data || [];
+    // Replace local cache entirely with authoritative DB data.
+    // This clears any optimistic/temp entries left from previous session.
+    _localMsgs = (data || []).filter(row => row && row.id);
+
     // Always do a full clean rebuild — never append on top of existing DOM
     rebuildChat();
   } catch (err) {
@@ -588,10 +591,19 @@ function subscribeRealtime() {
       { event: 'INSERT', schema: 'public', table: 'messages', filter: `track_code=eq.${TRACK_CODE}` },
       (payload) => {
         if (!payload.new) return;
-        // Skip if already in cache (we sent it — optimistic bubble already in DOM)
+        // Skip if already in cache by real ID
         if (_localMsgs.find(m => m.id === payload.new.id)) return;
         // Skip if already rendered in DOM (covers temp-id → real-id swap race)
         if (document.querySelector(`[data-msg-id="${payload.new.id}"]`)) return;
+        // Also skip if this looks like our own optimistic message still pending
+        const pendingEl = document.querySelector('[data-msg-id^="pending_"]');
+        if (pendingEl && payload.new.track_code === TRACK_CODE && payload.new.name === SENDER_NAME) {
+          // Swap the temp ID so it resolves correctly
+          pendingEl.dataset.msgId = payload.new.id;
+          _localMsgs.push(payload.new);
+          if (payload.new.reply) renderAdminBubble(payload.new, true);
+          return;
+        }
         _localMsgs.push(payload.new);
         renderUserBubble(payload.new, false);
         if (payload.new.reply) renderAdminBubble(payload.new, false);
@@ -723,11 +735,15 @@ async function sendMessage() {
 
     if (error) throw error;
 
-    // Replace temp entry with real DB row
+    // Replace temp DOM entry with real row ID
     const tempEl = document.querySelector(`[data-msg-id="${tempId}"]`);
     if (tempEl && data?.id) tempEl.dataset.msgId = data.id;
 
-    _localMsgs.push(data);
+    // Remove temp entry from cache (if any) and add the real DB row
+    _localMsgs = _localMsgs.filter(m => m.id !== tempId);
+    if (!_localMsgs.find(m => m.id === data.id)) {
+      _localMsgs.push(data);
+    }
   } catch (err) {
     console.error('Send error:', err);
     appendSystemMsg('⚠ Message failed to send. Please try again.');
@@ -950,7 +966,12 @@ async function handlePhotoSelect(event) {
 
     const tempEl = document.querySelector(`[data-msg-id="${tempId}"]`);
     if (tempEl && data?.id) tempEl.dataset.msgId = data.id;
-    _localMsgs.push(data);
+
+    // Remove temp entry from cache and store the real DB row
+    _localMsgs = _localMsgs.filter(m => m.id !== tempId);
+    if (!_localMsgs.find(m => m.id === data.id)) {
+      _localMsgs.push(data);
+    }
   } catch (err) {
     console.error('Photo upload error:', err);
     appendSystemMsg('⚠ Failed to upload photo. Please try again.');
