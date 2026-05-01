@@ -511,24 +511,41 @@ let _localMsgs   = [];
 
 // ── BOOT ──────────────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
-  const params        = new URLSearchParams(window.location.search);
-  const codeFromUrl   = params.get('code');
-  const codeFromStore = localStorage.getItem('gss_track_code');
-  TRACK_CODE = (codeFromUrl || codeFromStore || '').toUpperCase().trim() || null;
+  const params      = new URLSearchParams(window.location.search);
+  const codeFromUrl = params.get('code');
+  TRACK_CODE = (codeFromUrl || '').toUpperCase().trim() || null;
 
-  if (TRACK_CODE) {
-    SENDER_NAME = TRACK_CODE;
-    localStorage.setItem('gss_sender_name', SENDER_NAME);
-  } else {
-    // Generate an anonymous identifier if no tracking code is available
-    TRACK_CODE = localStorage.getItem('gss_anon_id') || ('ANON-' + Math.random().toString(36).slice(2, 10).toUpperCase());
-    localStorage.setItem('gss_anon_id', TRACK_CODE);
-    SENDER_NAME = SENDER_NAME || TRACK_CODE;
+  // Only users arriving with a real tracking code in the URL may chat.
+  if (!TRACK_CODE) {
+    document.getElementById('chatLoading')?.remove();
+    const area = document.getElementById('messagesArea');
+    if (area) {
+      area.innerHTML = `<div class="empty-state">
+        <div class="es-icon">🔒</div>
+        <p>Please access this chat from your shipment tracking page. A valid tracking code is required to send messages.</p>
+      </div>`;
+    }
+    const bar = document.getElementById('inputBar');
+    if (bar) bar.style.display = 'none';
+    return;
   }
 
-  loadMessages();
+  SENDER_NAME = TRACK_CODE;
+
+  // Always start fresh — clear any leftover state from previous session
+  _localMsgs = [];
+  document.getElementById('chatLoading')?.remove();
+  rebuildChat();   // renders welcome bubble immediately
+  loadMessages();  // fetches DB history and rebuilds
   subscribeRealtime();
   subscribeGlobalTyping();
+
+  // Wipe DOM on close so messages don't linger on reopen
+  window.addEventListener('beforeunload', () => {
+    _localMsgs = [];
+    const area = document.getElementById('messagesArea');
+    if (area) area.innerHTML = '';
+  });
 });
 
 // ── RENDER ALL — single source of truth ──────────────────────────────────────
@@ -563,17 +580,11 @@ async function loadMessages() {
       .eq('track_code', TRACK_CODE)
       .order('created_at', { ascending: true });
 
-    document.getElementById('chatLoading')?.remove();
     if (error) throw error;
-
-    // Replace local cache entirely with authoritative DB data.
-    // This clears any optimistic/temp entries left from previous session.
-    _localMsgs = (data || []).filter(row => row && row.id);
-
-    // Always do a full clean rebuild — never append on top of existing DOM
+    // Full reset from DB — no stale cache, no duplicates
+    _localMsgs = (data || []).filter(r => r && r.id);
     rebuildChat();
   } catch (err) {
-    document.getElementById('chatLoading')?.remove();
     appendSystemMsg('Could not load messages. Check your connection.');
     console.error(err);
   }
@@ -591,19 +602,10 @@ function subscribeRealtime() {
       { event: 'INSERT', schema: 'public', table: 'messages', filter: `track_code=eq.${TRACK_CODE}` },
       (payload) => {
         if (!payload.new) return;
-        // Skip if already in cache by real ID
+        // Skip if already in cache (we sent it — optimistic bubble already in DOM)
         if (_localMsgs.find(m => m.id === payload.new.id)) return;
         // Skip if already rendered in DOM (covers temp-id → real-id swap race)
         if (document.querySelector(`[data-msg-id="${payload.new.id}"]`)) return;
-        // Also skip if this looks like our own optimistic message still pending
-        const pendingEl = document.querySelector('[data-msg-id^="pending_"]');
-        if (pendingEl && payload.new.track_code === TRACK_CODE && payload.new.name === SENDER_NAME) {
-          // Swap the temp ID so it resolves correctly
-          pendingEl.dataset.msgId = payload.new.id;
-          _localMsgs.push(payload.new);
-          if (payload.new.reply) renderAdminBubble(payload.new, true);
-          return;
-        }
         _localMsgs.push(payload.new);
         renderUserBubble(payload.new, false);
         if (payload.new.reply) renderAdminBubble(payload.new, false);
@@ -735,15 +737,13 @@ async function sendMessage() {
 
     if (error) throw error;
 
-    // Replace temp DOM entry with real row ID
+    // Replace temp entry with real DB row
     const tempEl = document.querySelector(`[data-msg-id="${tempId}"]`);
     if (tempEl && data?.id) tempEl.dataset.msgId = data.id;
 
-    // Remove temp entry from cache (if any) and add the real DB row
+    // Remove temp entry, store real DB row (no duplicates)
     _localMsgs = _localMsgs.filter(m => m.id !== tempId);
-    if (!_localMsgs.find(m => m.id === data.id)) {
-      _localMsgs.push(data);
-    }
+    if (!_localMsgs.find(m => m.id === data.id)) _localMsgs.push(data);
   } catch (err) {
     console.error('Send error:', err);
     appendSystemMsg('⚠ Message failed to send. Please try again.');
@@ -966,12 +966,8 @@ async function handlePhotoSelect(event) {
 
     const tempEl = document.querySelector(`[data-msg-id="${tempId}"]`);
     if (tempEl && data?.id) tempEl.dataset.msgId = data.id;
-
-    // Remove temp entry from cache and store the real DB row
     _localMsgs = _localMsgs.filter(m => m.id !== tempId);
-    if (!_localMsgs.find(m => m.id === data.id)) {
-      _localMsgs.push(data);
-    }
+    if (!_localMsgs.find(m => m.id === data.id)) _localMsgs.push(data);
   } catch (err) {
     console.error('Photo upload error:', err);
     appendSystemMsg('⚠ Failed to upload photo. Please try again.');
