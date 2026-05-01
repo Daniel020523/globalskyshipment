@@ -628,13 +628,16 @@ function showAdminTyping() {
   const area = document.getElementById('messagesArea');
   area.appendChild(bubble);
   scrollBottom();
+  // Auto-hide after 3s in case the stop event is missed
+  clearTimeout(_adminTypingTimer);
+  _adminTypingTimer = setTimeout(() => hideAdminTyping(), 3000);
 }
 
 function hideAdminTyping() {
-  const bubble = document.getElementById('adminTypingBubble');
-  if (bubble) bubble.classList.remove('show');
   clearTimeout(_adminTypingTimer);
   _adminTypingTimer = null;
+  const bubble = document.getElementById('adminTypingBubble');
+  if (bubble) bubble.classList.remove('show');
 }
 
 // Global typing channel — piggybacks on the admin's global subscription channel
@@ -661,14 +664,14 @@ function emitUserTyping() {
     if (_globalTypingChannel) _globalTypingChannel.send(typingPayload);
   }
 
-  // Reset the stop timer on every keystroke
+  // Reset the stop timer on every keystroke — dots disappear 3s after last key
   clearTimeout(_userStopTimer);
   _userStopTimer = setTimeout(() => {
     _userIsTyping = false;
     const stopPayload = { type: 'broadcast', event: 'user_typing_stop', payload: { track_code: TRACK_CODE } };
     _channel.send(stopPayload);
     if (_globalTypingChannel) _globalTypingChannel.send(stopPayload);
-  }, 1500); // stop dots 1.5s after last keystroke
+  }, 3000);
 }
 
 function emitUserStoppedTyping() {
