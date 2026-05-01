@@ -540,8 +540,10 @@ window.addEventListener('DOMContentLoaded', () => {
   subscribeRealtime();
   subscribeGlobalTyping();
 
-  // Wipe DOM on close so messages don't linger on reopen
+  // Clear messages from DB and DOM when the tab/app is closed
   window.addEventListener('beforeunload', () => {
+    // Delete all messages for this track_code from Supabase
+    _supabase.from('messages').delete().eq('track_code', TRACK_CODE);
     _localMsgs = [];
     const area = document.getElementById('messagesArea');
     if (area) area.innerHTML = '';
