@@ -776,7 +776,7 @@ function buildTimeline(d) {
     },
     {
       icon: '🛬', title: 'Arrived at Airport Hub',
-      desc: `Package arrived at ${airport}. Delivery fee of ${d.fee || '—'} now due. You will be contacted at ${d.email || 'your email'}.`,
+      desc: `Package arrived at ${airport}.`,
       time: status === 'arrived' ? 'In progress' : (status === 'delivered' ? 'Completed' : 'Pending'),
       state: status === 'arrived' ? 'active' : (status === 'delivered' ? 'done' : 'pending'),
       here: status === 'arrived'
